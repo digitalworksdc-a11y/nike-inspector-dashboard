@@ -244,6 +244,36 @@
       <div class="sum-card"><div class="loading">로딩 중...</div></div>
     </div>
 
+    <!-- 사용자별 현황 -->
+    <div class="section-title">👤 사용자별 현황</div>
+    <div class="cards cards-2">
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">일반 검수</span></div>
+        <div id="user-inspect-wrap"><div class="loading">로딩 중...</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">PW검수</span></div>
+        <div id="user-badge-wrap"><div class="loading">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="section-title">📈 통계</div>
+    <div class="cards cards-3">
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">일별 검수량</span></div>
+        <div style="padding:16px 18px 20px;" id="chart-daily"></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">검수 상태 분포</span></div>
+        <div class="donut-wrap" id="chart-status-dist"></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">카테고리 Top5</span></div>
+        <div style="padding:16px 18px 20px;" id="chart-category"></div>
+      </div>
+    </div>
+
     <!-- PW검수 -->
     <div class="section-title">🏷 PW검수 · 뱃징 현황</div>
     <div class="cards cards-4" id="badge-cards"></div>
@@ -309,35 +339,9 @@
       <div class="pagination" id="inspect-pagination"></div>
     </div>
 
-    <!-- 사용자 + 차트 -->
-    <div class="section-title">👤 사용자별 현황</div>
-    <div class="cards cards-2">
-      <div class="table-wrap">
-        <div class="table-header"><span class="table-title">일반 검수</span></div>
-        <div id="user-inspect-wrap"><div class="loading">로딩 중...</div></div>
-      </div>
-      <div class="table-wrap">
-        <div class="table-header"><span class="table-title">PW검수</span></div>
-        <div id="user-badge-wrap"><div class="loading">로딩 중...</div></div>
-      </div>
-    </div>
 
-    <!-- 차트 -->
-    <div class="section-title">📈 통계</div>
-    <div class="cards cards-3">
-      <div class="table-wrap">
-        <div class="table-header"><span class="table-title">일별 검수량</span></div>
-        <div style="padding:16px 18px 20px;" id="chart-daily"></div>
-      </div>
-      <div class="table-wrap">
-        <div class="table-header"><span class="table-title">뱃징 분포</span></div>
-        <div class="donut-wrap" id="chart-badge-dist"></div>
-      </div>
-      <div class="table-wrap">
-        <div class="table-header"><span class="table-title">카테고리 Top5</span></div>
-        <div style="padding:16px 18px 20px;" id="chart-category"></div>
-      </div>
-    </div>
+
+
 
     <div style="height:40px;"></div>
   </main>
@@ -494,8 +498,10 @@ function renderSummary() {
   const badge = applyFilters(allBadge);
   const today = filterByDate(allInspections.filter(() => true)); // 오늘
   const done  = rows.filter(r => r.status === 'done' || r.status === 'snkrs').length;
-  const issues = rows.filter(r => r.kc_certification === '△' || r.status === 'mismatch').length;
-  const lastTime = rows[0]?.created_at ? fmtDate(rows[0].created_at) : '-';
+  const issues = rows.filter(r => r.kc_certification === '△' || ['mismatch','검색불일치','no_result','검색없음','timeout','타임아웃'].includes(r.status||'')).length;
+  const lastRow = rows[0];
+  const lastTime = lastRow?.created_at ? fmtDate(lastRow.created_at) : '-';
+  const lastUser = lastRow?.user_name || '';
 
   document.getElementById('summary-cards').innerHTML = `
     <div class="sum-card orange">
@@ -520,7 +526,8 @@ function renderSummary() {
     </div>
     <div class="sum-card amber">
       <div class="sum-label">마지막 검수</div>
-      <div class="sum-value" style="font-size:16px;margin-top:4px;">${lastTime}</div>
+      <div class="sum-value" style="font-size:15px;margin-top:4px;">${lastTime}</div>
+      <div class="sum-sub">${lastUser}</div>
     </div>
   `;
 
@@ -566,18 +573,19 @@ function renderBadgeSection() {
 function renderIssueSection() {
   const rows = applyFilters(allInspections);
   const kc       = rows.filter(r => r.kc_certification === '△');
-  const mismatch = rows.filter(r => (r.status||'').includes('mismatch'));
-  const snkrs    = rows.filter(r => (r.status||'').includes('snkrs'));
+  const mismatch = rows.filter(r => ['mismatch','검색불일치','no_result','검색없음'].includes(r.status||''));
+  const snkrs    = rows.filter(r => ['snkrs','SNKRS'].includes(r.status||''));
+  const timeout  = rows.filter(r => ['timeout','타임아웃'].includes(r.status||''));
   const noted    = rows.filter(r => r.notes && r.notes.trim());
 
   document.getElementById('issue-cards').innerHTML = `
     <div class="card amber"><div class="card-label">KC 확인필요 (△)</div><div class="card-value">${kc.length}</div></div>
     <div class="card red"><div class="card-label">검색불일치</div><div class="card-value">${mismatch.length}</div></div>
     <div class="card blue"><div class="card-label">SNKRS</div><div class="card-value">${snkrs.length}</div></div>
-    <div class="card"><div class="card-label">비고 있음</div><div class="card-value">${noted.length}</div></div>
+    <div class="card red"><div class="card-label">타임아웃</div><div class="card-value">${timeout.length}</div></div>
   `;
 
-  const issueRows = [...kc, ...mismatch, ...snkrs].filter((r,i,a) => a.findIndex(x=>x.id===r.id)===i);
+  const issueRows = [...kc, ...mismatch, ...snkrs, ...timeout].filter((r,i,a) => a.findIndex(x=>x.id===r.id)===i);
   document.getElementById('issue-count').textContent = issueRows.length + '건';
 
   if (!issueRows.length) { document.getElementById('issue-table-wrap').innerHTML = '<div class="empty">이슈 제품이 없습니다 ✅</div>'; return; }
@@ -714,18 +722,19 @@ function renderCharts() {
       </div>`).join('')}
     </div>` : '<div class="empty">데이터 없음</div>';
 
-  // 뱃징 분포
-  const byBadge = {};
-  rows.forEach(r => { const b=r.badge||'x'; byBadge[b]=(byBadge[b]||0)+1; });
-  const badgeColors = {'신제품':'#1A6B3C','베스트셀러':'#FF6B00','품절':'#E4002B','재생 소재':'#1A3A6B','x':'#CCCCCC'};
-  const badgeEntries = Object.entries(byBadge).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const totalB = badgeEntries.reduce((s,[,v])=>s+v, 0)||1;
-  document.getElementById('chart-badge-dist').innerHTML = badgeEntries.length ? `
+  // 검수 상태 분포
+  const statusMap = {'done':'완료','snkrs':'SNKRS','mismatch':'불일치','timeout':'타임아웃','no_result':'검색없음','done_tracking':'트레킹완료','not_found_tracking':'미발견'};
+  const statusColors = {'done':'#1A6B3C','snkrs':'#6B1A6B','mismatch':'#E67E22','timeout':'#E4002B','no_result':'#888','done_tracking':'#1A3A6B','not_found_tracking':'#CCCCCC'};
+  const byStatus = {};
+  rows.forEach(r => { const s=r.status||'done'; byStatus[s]=(byStatus[s]||0)+1; });
+  const statusEntries = Object.entries(byStatus).sort((a,b)=>b[1]-a[1]);
+  const totalS = statusEntries.reduce((s,[,v])=>s+v,0)||1;
+  document.getElementById('chart-status-dist').innerHTML = statusEntries.length ? `
     <svg width="80" height="80" viewBox="0 0 80 80">
       ${(() => {
         let offset = 0;
-        return badgeEntries.map(([name,cnt]) => {
-          const pct = cnt/totalB; const deg = pct*360;
+        return statusEntries.map(([name,cnt]) => {
+          const pct = cnt/totalS; const deg = pct*360;
           const r=30, cx=40, cy=40;
           const startAngle = offset * Math.PI/180;
           const endAngle = (offset+deg) * Math.PI/180;
@@ -733,16 +742,16 @@ function renderCharts() {
           const x2=cx+r*Math.sin(endAngle), y2=cy-r*Math.cos(endAngle);
           const large = deg > 180 ? 1 : 0;
           offset += deg;
-          return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${badgeColors[name]||'#888'}"/>`;
+          return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${statusColors[name]||'#888'}"/>`;
         }).join('');
       })()}
       <circle cx="40" cy="40" r="18" fill="white"/>
     </svg>
     <div class="donut-legend">
-      ${badgeEntries.map(([name,cnt]) => `
+      ${statusEntries.map(([name,cnt]) => `
         <div class="legend-item">
-          <div class="legend-dot" style="background:${badgeColors[name]||'#888'};"></div>
-          <span>${name === 'x' ? '없음' : name}</span>
+          <div class="legend-dot" style="background:${statusColors[name]||'#888'};"></div>
+          <span>${statusMap[name]||name}</span>
           <span style="margin-left:auto;font-weight:700;">${cnt}</span>
         </div>`).join('')}
     </div>` : '<div class="empty">데이터 없음</div>';
