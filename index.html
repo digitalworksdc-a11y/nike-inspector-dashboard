@@ -688,8 +688,10 @@ function modeChip(m) {
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return (d.getMonth()+1) + '/' + d.getDate() + ' ' +
-    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  // KST = UTC+9
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return (kst.getUTCMonth()+1) + '/' + kst.getUTCDate() + ' ' +
+    String(kst.getUTCHours()).padStart(2,'0') + ':' + String(kst.getUTCMinutes()).padStart(2,'0');
 }
 
 function badgeChip(b) {
