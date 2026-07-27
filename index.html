@@ -6,279 +6,198 @@
 <title>Nike Inspector · DTC3 대시보드</title>
 <style>
   :root {
-    --black: #111111;
-    --white: #FFFFFF;
-    --gray-50: #F8F8F8;
-    --gray-100: #EEEEEE;
-    --gray-300: #CCCCCC;
-    --gray-500: #888888;
-    --gray-700: #444444;
-    --nike-orange: #FF6B00;
-    --nike-red: #E4002B;
-    --green: #1A6B3C;
-    --green-light: #E8F5EE;
-    --amber: #E67E22;
-    --amber-light: #FEF3E2;
-    --red-light: #FDE8EC;
-    --blue: #1A3A6B;
-    --blue-light: #E8EEF8;
-    --purple: #6B1A6B;
-    --purple-light: #F5E8F5;
+    --black: #111111; --white: #FFFFFF;
+    --gray-50: #F8F8F8; --gray-100: #EEEEEE;
+    --gray-300: #CCCCCC; --gray-500: #888888; --gray-700: #444444;
+    --orange: #FF6B00; --red: #E4002B;
+    --green: #1A6B3C; --green-light: #E8F5EE;
+    --amber: #E67E22; --amber-light: #FEF3E2;
+    --red-light: #FDE8EC; --blue: #1A3A6B; --blue-light: #E8EEF8;
+    --purple: #6B1A6B; --purple-light: #F5E8F5;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--gray-50); color: var(--black); min-height: 100vh; }
 
-  body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background: var(--gray-50);
-    color: var(--black);
-    min-height: 100vh;
-  }
-
-  /* ── 로그인 화면 ── */
-  #login-screen {
-    position: fixed; inset: 0;
-    background: var(--black);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-    flex-direction: column; gap: 0;
-  }
-  .login-box {
-    width: 360px;
-    padding: 48px 40px;
-    background: #1A1A1A;
-    border: 1px solid #333;
-  }
-  .login-logo {
-    font-size: 28px; font-weight: 900; letter-spacing: -1px;
-    color: var(--white); margin-bottom: 6px;
-  }
-  .login-logo span { color: var(--nike-orange); }
-  .login-sub {
-    font-size: 11px; color: var(--gray-500);
-    letter-spacing: 2px; text-transform: uppercase;
-    margin-bottom: 36px;
-  }
-  .login-input {
-    width: 100%; padding: 14px 16px;
-    background: #2A2A2A; border: 1px solid #444;
-    color: var(--white); font-size: 16px; letter-spacing: 4px;
-    outline: none; transition: border-color .2s;
-    font-family: monospace;
-  }
-  .login-input:focus { border-color: var(--nike-orange); }
-  .login-input::placeholder { letter-spacing: 1px; color: #666; font-size: 13px; font-family: sans-serif; }
-  .login-btn {
-    width: 100%; margin-top: 12px; padding: 14px;
-    background: var(--nike-orange); border: none;
-    color: var(--white); font-size: 13px; font-weight: 800;
-    letter-spacing: 2px; text-transform: uppercase;
-    cursor: pointer; transition: background .2s;
-  }
+  /* ── 로그인 ── */
+  #login-screen { position: fixed; inset: 0; background: var(--black); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .login-box { width: 340px; padding: 48px 36px; background: #1A1A1A; border: 1px solid #333; }
+  .login-logo { font-size: 22px; font-weight: 900; color: var(--white); margin-bottom: 4px; letter-spacing: -0.5px; }
+  .login-logo span { color: var(--orange); }
+  .login-sub { font-size: 10px; color: var(--gray-500); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+  .login-input { width: 100%; padding: 13px 14px; background: #2A2A2A; border: 1px solid #444; color: var(--white); font-size: 15px; letter-spacing: 3px; outline: none; transition: border-color .2s; font-family: monospace; }
+  .login-input:focus { border-color: var(--orange); }
+  .login-input::placeholder { letter-spacing: 1px; color: #555; font-size: 12px; font-family: sans-serif; }
+  .login-btn { width: 100%; margin-top: 10px; padding: 13px; background: var(--orange); border: none; color: var(--white); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; }
   .login-btn:hover { background: #E05A00; }
-  .login-error {
-    margin-top: 10px; font-size: 12px; color: var(--nike-red);
-    display: none; text-align: center;
-  }
+  .login-error { margin-top: 8px; font-size: 11px; color: var(--red); display: none; text-align: center; }
 
-  /* ── 대시보드 ── */
+  /* ── 헤더 ── */
   #dashboard { display: none; }
-
-  header {
-    background: var(--black); padding: 0 32px;
-    display: flex; align-items: center; justify-content: space-between;
-    height: 56px; position: sticky; top: 0; z-index: 100;
-  }
-  .header-logo {
-    font-size: 15px; font-weight: 900; letter-spacing: -0.5px; color: var(--white);
-  }
-  .header-logo span { color: var(--nike-orange); }
-  .header-right { display: flex; align-items: center; gap: 16px; }
+  header { background: var(--black); padding: 0 28px; display: flex; align-items: center; justify-content: space-between; height: 52px; position: sticky; top: 0; z-index: 100; }
+  .header-logo { font-size: 14px; font-weight: 900; color: var(--white); letter-spacing: -0.5px; }
+  .header-logo span { color: var(--orange); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
   .header-time { font-size: 11px; color: var(--gray-500); }
-  .btn-refresh {
-    padding: 6px 14px; background: #222; border: 1px solid #444;
-    color: var(--white); font-size: 11px; font-weight: 700;
-    letter-spacing: 1px; cursor: pointer; transition: all .2s;
-  }
-  .btn-refresh:hover { background: var(--nike-orange); border-color: var(--nike-orange); }
+  .auto-badge { font-size: 10px; color: #4CAF50; font-weight: 700; letter-spacing: 1px; }
+  .btn-refresh { padding: 5px 12px; background: #222; border: 1px solid #444; color: var(--white); font-size: 11px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-refresh:hover { background: var(--orange); border-color: var(--orange); }
 
-  /* ── 사용자 필터 ── */
-  .user-filter-bar {
-    background: var(--white); border-bottom: 1px solid var(--gray-100);
-    padding: 0 32px; display: flex; align-items: center; gap: 8px; height: 48px;
-  }
-  .filter-label { font-size: 11px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; margin-right: 4px; }
-  .user-chip {
-    padding: 5px 14px; border: 1.5px solid var(--gray-300);
-    background: var(--white); font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: all .15s; border-radius: 20px; color: var(--gray-700);
-  }
-  .user-chip.active {
-    background: var(--black); border-color: var(--black); color: var(--white);
-  }
-  .user-chip:hover:not(.active) { border-color: var(--black); }
+  /* ── 새 데이터 배너 ── */
+  #new-data-banner { display: none; background: var(--green); color: var(--white); text-align: center; padding: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  #new-data-banner:hover { background: #155a32; }
 
-  /* ── 날짜 필터 ── */
-  .date-filter-bar {
-    background: var(--white); border-bottom: 1px solid var(--gray-100);
-    padding: 0 32px; display: flex; align-items: center; gap: 8px; height: 44px;
-  }
-  .date-chip {
-    padding: 4px 12px; border: 1.5px solid var(--gray-300);
-    background: var(--white); font-size: 11px; font-weight: 600;
-    cursor: pointer; transition: all .15s; border-radius: 20px; color: var(--gray-700);
-  }
-  .date-chip.active { background: var(--nike-orange); border-color: var(--nike-orange); color: var(--white); }
+  /* ── 이슈 배너 ── */
+  #issue-banner { display: none; background: var(--red); color: var(--white); padding: 10px 28px; font-size: 12px; font-weight: 700; }
+
+  /* ── 필터 바 ── */
+  .filter-bar { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 28px; display: flex; align-items: center; gap: 8px; height: 46px; overflow-x: auto; }
+  .filter-label { font-size: 10px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; white-space: nowrap; margin-right: 4px; }
+  .chip { padding: 4px 12px; border: 1.5px solid var(--gray-300); background: var(--white); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; border-radius: 20px; color: var(--gray-700); white-space: nowrap; }
+  .chip.active { background: var(--black); border-color: var(--black); color: var(--white); }
+  .chip.active.orange { background: var(--orange); border-color: var(--orange); }
 
   /* ── 메인 ── */
-  main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+  main { padding: 24px 28px; max-width: 1440px; margin: 0 auto; }
 
   /* ── 섹션 타이틀 ── */
-  .section-title {
-    font-size: 11px; font-weight: 800; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--gray-500);
-    margin-bottom: 14px; margin-top: 32px;
-    display: flex; align-items: center; gap: 8px;
-  }
+  .section-title { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-500); margin-bottom: 12px; margin-top: 28px; display: flex; align-items: center; gap: 8px; }
   .section-title:first-child { margin-top: 0; }
-  .section-title::after {
-    content: ''; flex: 1; height: 1px; background: var(--gray-100);
-  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--gray-100); }
+
+  /* ── 요약 카드 ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .sum-card { background: var(--white); border: 1px solid var(--gray-100); padding: 16px 20px; position: relative; overflow: hidden; }
+  .sum-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--gray-300); }
+  .sum-card.orange::before { background: var(--orange); }
+  .sum-card.green::before { background: var(--green); }
+  .sum-card.red::before { background: var(--red); }
+  .sum-card.blue::before { background: var(--blue); }
+  .sum-card.amber::before { background: var(--amber); }
+  .sum-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+  .sum-value { font-size: 28px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+  .sum-card.orange .sum-value { color: var(--orange); }
+  .sum-card.green .sum-value { color: var(--green); }
+  .sum-card.red .sum-value { color: var(--red); }
+  .sum-card.blue .sum-value { color: var(--blue); }
+  .sum-card.amber .sum-value { color: var(--amber); }
+  .sum-delta { font-size: 11px; margin-top: 4px; font-weight: 600; }
+  .sum-delta.up { color: var(--green); }
+  .sum-delta.down { color: var(--red); }
+  .sum-delta.neutral { color: var(--gray-500); }
+  .sum-sub { font-size: 10px; color: var(--gray-500); margin-top: 2px; }
 
   /* ── 카드 그리드 ── */
-  .cards { display: grid; gap: 12px; margin-bottom: 4px; }
+  .cards { display: grid; gap: 10px; }
   .cards-4 { grid-template-columns: repeat(4, 1fr); }
   .cards-3 { grid-template-columns: repeat(3, 1fr); }
   .cards-2 { grid-template-columns: repeat(2, 1fr); }
-
-  .card {
-    background: var(--white); padding: 20px 24px;
-    border: 1px solid var(--gray-100);
-  }
-  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gray-500); margin-bottom: 8px; }
-  .card-value { font-size: 32px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
-  .card-sub { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
-  .card.orange .card-value { color: var(--nike-orange); }
+  .card { background: var(--white); padding: 18px 20px; border: 1px solid var(--gray-100); }
+  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+  .card-value { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+  .card.orange .card-value { color: var(--orange); }
   .card.green .card-value { color: var(--green); }
-  .card.red .card-value { color: var(--nike-red); }
+  .card.red .card-value { color: var(--red); }
   .card.blue .card-value { color: var(--blue); }
+  .card.amber .card-value { color: var(--amber); }
 
   /* ── 테이블 ── */
   .table-wrap { background: var(--white); border: 1px solid var(--gray-100); overflow: hidden; }
-  .table-header {
-    padding: 14px 20px; border-bottom: 1px solid var(--gray-100);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .table-title { font-size: 12px; font-weight: 800; letter-spacing: .5px; }
+  .table-header { padding: 12px 18px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .table-title { font-size: 12px; font-weight: 800; }
   .table-count { font-size: 11px; color: var(--gray-500); }
-  .search-input {
-    padding: 6px 12px; border: 1px solid var(--gray-300);
-    font-size: 12px; outline: none; width: 200px; transition: border-color .2s;
-  }
+  .search-input { padding: 6px 10px; border: 1px solid var(--gray-300); font-size: 11px; outline: none; width: 180px; transition: border-color .2s; }
   .search-input:focus { border-color: var(--black); }
-
+  .filter-row { display: flex; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--gray-100); flex-wrap: wrap; align-items: center; background: var(--gray-50); }
+  .filter-select { padding: 4px 8px; border: 1.5px solid var(--gray-300); font-size: 11px; font-weight: 600; background: var(--white); cursor: pointer; outline: none; color: var(--gray-700); }
+  .filter-select:focus { border-color: var(--black); }
+  .btn-reset-filter { padding: 4px 10px; border: 1.5px solid var(--gray-300); background: var(--white); font-size: 11px; font-weight: 700; cursor: pointer; color: var(--gray-500); }
+  .btn-reset-filter:hover { border-color: var(--red); color: var(--red); }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th {
-    padding: 10px 14px; text-align: left; font-size: 10px;
-    font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-    color: var(--gray-500); background: var(--gray-50);
-    border-bottom: 1px solid var(--gray-100); white-space: nowrap;
-  }
-  td {
-    padding: 10px 14px; border-bottom: 1px solid var(--gray-100);
-    vertical-align: middle; max-width: 200px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gray-500); background: var(--gray-50); border-bottom: 1px solid var(--gray-100); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--gray-50); }
+  tr:hover td { background: #FAFAFA; cursor: pointer; }
 
-  .badge {
-    display: inline-block; padding: 2px 8px;
-    font-size: 10px; font-weight: 700; letter-spacing: .5px;
-    border-radius: 3px;
-  }
+  /* ── 뱃지 ── */
+  .badge { display: inline-block; padding: 2px 7px; font-size: 10px; font-weight: 700; border-radius: 3px; }
   .badge-green { background: var(--green-light); color: var(--green); }
   .badge-amber { background: var(--amber-light); color: var(--amber); }
-  .badge-red { background: var(--red-light); color: var(--nike-red); }
+  .badge-red { background: var(--red-light); color: var(--red); }
   .badge-blue { background: var(--blue-light); color: var(--blue); }
   .badge-purple { background: var(--purple-light); color: var(--purple); }
   .badge-gray { background: var(--gray-100); color: var(--gray-500); }
-  .badge-orange { background: #FFF0E6; color: var(--nike-orange); }
+  .badge-orange { background: #FFF0E6; color: var(--orange); }
 
   /* ── 사용자 현황 ── */
-  .user-stat-row {
-    display: flex; align-items: center; padding: 12px 20px;
-    border-bottom: 1px solid var(--gray-100); gap: 12px;
-  }
+  .user-stat-row { display: flex; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--gray-100); gap: 10px; }
   .user-stat-row:last-child { border-bottom: none; }
-  .user-avatar {
-    width: 32px; height: 32px; background: var(--black);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 800; color: var(--white); flex-shrink: 0;
-  }
-  .user-stat-name { font-size: 13px; font-weight: 700; flex: 1; }
-  .user-stat-bar-wrap { flex: 2; height: 6px; background: var(--gray-100); border-radius: 3px; overflow: hidden; }
-  .user-stat-bar { height: 100%; background: var(--nike-orange); border-radius: 3px; transition: width .6s ease; }
-  .user-stat-num { font-size: 13px; font-weight: 800; min-width: 40px; text-align: right; }
+  .user-avatar { width: 30px; height: 30px; background: var(--black); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--white); flex-shrink: 0; }
+  .user-stat-name { font-size: 12px; font-weight: 700; flex: 1; }
+  .user-stat-bar-wrap { flex: 2; height: 5px; background: var(--gray-100); border-radius: 3px; overflow: hidden; }
+  .user-stat-bar { height: 100%; background: var(--orange); border-radius: 3px; transition: width .6s ease; }
+  .user-stat-num { font-size: 13px; font-weight: 800; min-width: 36px; text-align: right; }
 
-  /* ── 로딩 ── */
-  .loading {
-    padding: 40px; text-align: center; color: var(--gray-500);
-    font-size: 12px; letter-spacing: 1px;
-  }
-  .empty {
-    padding: 32px; text-align: center; color: var(--gray-300);
-    font-size: 12px;
-  }
+  /* ── 차트 ── */
+  .chart-bar-wrap { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .chart-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; height: 100%; justify-content: flex-end; }
+  .chart-val { font-size: 10px; font-weight: 700; color: var(--gray-500); }
+  .chart-bar { width: 100%; background: var(--orange); border-radius: 2px 2px 0 0; transition: height .4s ease; min-height: 2px; }
+  .chart-label { font-size: 9px; color: var(--gray-500); white-space: nowrap; margin-top: 4px; }
+
+  /* ── 도넛 차트 ── */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; padding: 16px 18px; }
+  .donut-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* ── 페이지네이션 ── */
-  .pagination {
-    display: flex; align-items: center; justify-content: center;
-    gap: 4px; padding: 14px 20px; border-top: 1px solid var(--gray-100);
-  }
-  .page-btn {
-    width: 32px; height: 32px; border: 1.5px solid var(--gray-300);
-    background: var(--white); font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: all .15s; color: var(--gray-700);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .page-btn:hover:not(.active):not(:disabled) { border-color: var(--black); color: var(--black); }
+  .pagination { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 12px 18px; border-top: 1px solid var(--gray-100); }
+  .page-btn { width: 28px; height: 28px; border: 1.5px solid var(--gray-300); background: var(--white); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; color: var(--gray-700); display: flex; align-items: center; justify-content: center; }
+  .page-btn:hover:not(.active):not(:disabled) { border-color: var(--black); }
   .page-btn.active { background: var(--black); border-color: var(--black); color: var(--white); }
   .page-btn:disabled { opacity: .3; cursor: default; }
-  .page-info { font-size: 11px; color: var(--gray-500); padding: 0 8px; }
+  .page-info { font-size: 10px; color: var(--gray-500); padding: 0 6px; }
 
-  /* ── 필터 바 ── */
-  .filter-row {
-    display: flex; gap: 8px; padding: 10px 20px;
-    border-bottom: 1px solid var(--gray-100); flex-wrap: wrap; align-items: center;
-    background: var(--gray-50);
-  }
-  .filter-select {
-    padding: 5px 10px; border: 1.5px solid var(--gray-300);
-    font-size: 11px; font-weight: 600; background: var(--white);
-    cursor: pointer; outline: none; color: var(--gray-700);
-    transition: border-color .2s;
-  }
-  .filter-select:focus { border-color: var(--black); }
-  .btn-reset-filter {
-    padding: 5px 12px; border: 1.5px solid var(--gray-300);
-    background: var(--white); font-size: 11px; font-weight: 700;
-    cursor: pointer; color: var(--gray-500); transition: all .15s;
-  }
-  .btn-reset-filter:hover { border-color: var(--nike-red); color: var(--nike-red); }
+  /* ── 모달 ── */
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1000; align-items: center; justify-content: center; }
+  #modal-overlay.show { display: flex; }
+  .modal { background: var(--white); width: 560px; max-width: 95vw; max-height: 80vh; overflow-y: auto; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); }
+  .modal-title { font-size: 14px; font-weight: 800; }
+  .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--gray-500); }
+  .modal-body { padding: 20px; }
+  .modal-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 12px; }
+  .modal-row:last-child { border-bottom: none; }
+  .modal-key { width: 120px; font-weight: 700; color: var(--gray-500); flex-shrink: 0; }
+  .modal-val { flex: 1; word-break: break-all; }
+  .modal-link { color: var(--blue); text-decoration: underline; cursor: pointer; }
+
+  /* ── 로딩/빈 상태 ── */
+  .loading { padding: 32px; text-align: center; color: var(--gray-500); font-size: 12px; }
+  .empty { padding: 28px; text-align: center; color: var(--gray-300); font-size: 12px; }
 
   /* ── 반응형 ── */
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 768px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .cards-4 { grid-template-columns: repeat(2, 1fr); }
-    main { padding: 20px 16px; }
-    header { padding: 0 16px; }
-    .user-filter-bar, .date-filter-bar { padding: 0 16px; overflow-x: auto; }
+    .cards-2 { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header, .filter-bar { padding: 0 16px; }
+    #issue-banner { padding: 10px 16px; }
+    .modal { width: 100%; max-width: 100%; max-height: 90vh; }
+  }
+  @media (max-width: 480px) {
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .cards-4 { grid-template-columns: 1fr 1fr; }
+    table { font-size: 11px; }
+    th, td { padding: 7px 8px; }
   }
 </style>
 </head>
 <body>
 
-<!-- ── 로그인 ── -->
+<!-- 로그인 -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">NIKE <span>INSPECTOR</span></div>
@@ -289,39 +208,46 @@
   </div>
 </div>
 
-<!-- ── 대시보드 ── -->
+<!-- 대시보드 -->
 <div id="dashboard">
   <header>
     <div class="header-logo">NIKE <span>INSPECTOR</span> · DTC3</div>
     <div class="header-right">
+      <span class="auto-badge" id="auto-badge">● 자동갱신</span>
       <span class="header-time" id="header-time"></span>
-      <button class="btn-refresh" onclick="loadAll()">↻ 새로고침</button>
+      <button class="btn-refresh" onclick="loadAll()">↻</button>
     </div>
   </header>
 
-  <!-- 사용자 필터 -->
-  <div class="user-filter-bar">
-    <span class="filter-label">사용자</span>
-    <button class="user-chip active" data-user="all" onclick="setUser(this)">전체</button>
-    <div id="user-chips"></div>
-  </div>
+  <!-- 새 데이터 배너 -->
+  <div id="new-data-banner" onclick="dismissNewBanner()">🔔 새 검수 데이터가 있습니다. 클릭하여 새로고침</div>
 
-  <!-- 날짜 필터 -->
-  <div class="date-filter-bar">
-    <span class="filter-label">기간</span>
-    <button class="date-chip active" data-days="1" onclick="setDate(this)">오늘</button>
-    <button class="date-chip" data-days="7" onclick="setDate(this)">7일</button>
-    <button class="date-chip" data-days="30" onclick="setDate(this)">30일</button>
-    <button class="date-chip" data-days="0" onclick="setDate(this)">전체</button>
+  <!-- 이슈 배너 -->
+  <div id="issue-banner" id="issue-banner"></div>
+
+  <!-- 사용자 필터 -->
+  <div class="filter-bar">
+    <span class="filter-label">사용자</span>
+    <button class="chip active" data-user="all" onclick="setUser(this)">전체</button>
+    <div id="user-chips" style="display:flex;gap:6px;"></div>
+    <span class="filter-label" style="margin-left:12px;">기간</span>
+    <button class="chip active orange" data-days="1" onclick="setDate(this)">오늘</button>
+    <button class="chip" data-days="7" onclick="setDate(this)">7일</button>
+    <button class="chip" data-days="30" onclick="setDate(this)">30일</button>
+    <button class="chip" data-days="0" onclick="setDate(this)">전체</button>
   </div>
 
   <main>
-    <!-- ① PW검수(뱃징) 현황 -->
-    <div class="section-title">🏷 PW검수 · 뱃징 현황</div>
-    <div class="cards cards-4" id="badge-cards">
-      <div class="card"><div class="loading">로딩 중...</div></div>
+    <!-- 요약 카드 -->
+    <div class="section-title">📊 검수 현황</div>
+    <div class="summary-grid" id="summary-cards">
+      <div class="sum-card"><div class="loading">로딩 중...</div></div>
     </div>
-    <div class="table-wrap" style="margin-top:12px;">
+
+    <!-- PW검수 -->
+    <div class="section-title">🏷 PW검수 · 뱃징 현황</div>
+    <div class="cards cards-4" id="badge-cards"></div>
+    <div class="table-wrap" style="margin-top:10px;">
       <div class="table-header">
         <span class="table-title">PW검수 내역</span>
         <span class="table-count" id="badge-count"></span>
@@ -329,12 +255,10 @@
       <div id="badge-table-wrap"><div class="loading">로딩 중...</div></div>
     </div>
 
-    <!-- ② 이슈 제품 -->
+    <!-- 이슈 -->
     <div class="section-title">⚠️ 이슈 제품</div>
-    <div class="cards cards-4" id="issue-cards">
-      <div class="card"><div class="loading">로딩 중...</div></div>
-    </div>
-    <div class="table-wrap" style="margin-top:12px;">
+    <div class="cards cards-4" id="issue-cards"></div>
+    <div class="table-wrap" style="margin-top:10px;">
       <div class="table-header">
         <span class="table-title">이슈 제품 목록</span>
         <span class="table-count" id="issue-count"></span>
@@ -342,14 +266,14 @@
       <div id="issue-table-wrap"><div class="loading">로딩 중...</div></div>
     </div>
 
-    <!-- ③ 최근 검수 내역 -->
+    <!-- 검수 내역 -->
     <div class="section-title">📋 최근 검수 내역</div>
     <div class="table-wrap">
       <div class="table-header">
         <span class="table-title">검수 결과</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <span class="table-count" id="inspect-count"></span>
-          <input class="search-input" id="search-input" placeholder="스타일번호 / 제품명 검색" oninput="resetInspectPage()">
+          <input class="search-input" id="search-input" placeholder="스타일번호 / 제품명" oninput="resetInspectPage()">
         </div>
       </div>
       <div class="filter-row">
@@ -362,16 +286,15 @@
         <select class="filter-select" id="f-status" onchange="resetInspectPage()">
           <option value="">상태 전체</option>
           <option value="done">완료</option>
-          <option value="mismatch">검색불일치</option>
+          <option value="mismatch">불일치</option>
           <option value="timeout">타임아웃</option>
           <option value="snkrs">SNKRS</option>
-          <option value="done_tracking">트레킹완료</option>
         </select>
         <select class="filter-select" id="f-kc" onchange="resetInspectPage()">
           <option value="">KC 전체</option>
-          <option value="O">O (인증)</option>
-          <option value="△">△ (확인필요)</option>
-          <option value="-">- (없음)</option>
+          <option value="O">O</option>
+          <option value="△">△</option>
+          <option value="-">-</option>
         </select>
         <select class="filter-select" id="f-badge" onchange="resetInspectPage()">
           <option value="">뱃징 전체</option>
@@ -386,7 +309,7 @@
       <div class="pagination" id="inspect-pagination"></div>
     </div>
 
-    <!-- ④ 사용자별 현황 -->
+    <!-- 사용자 + 차트 -->
     <div class="section-title">👤 사용자별 현황</div>
     <div class="cards cards-2">
       <div class="table-wrap">
@@ -399,26 +322,49 @@
       </div>
     </div>
 
-    <!-- ⑤ 날짜별 차트 -->
-    <div class="section-title">📈 날짜별 검수량</div>
-    <div class="table-wrap">
-      <div class="table-header"><span class="table-title">일별 추이</span></div>
-      <div id="chart-wrap" style="padding:20px 24px;"></div>
+    <!-- 차트 -->
+    <div class="section-title">📈 통계</div>
+    <div class="cards cards-3">
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">일별 검수량</span></div>
+        <div style="padding:16px 18px 20px;" id="chart-daily"></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">뱃징 분포</span></div>
+        <div class="donut-wrap" id="chart-badge-dist"></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">카테고리 Top5</span></div>
+        <div style="padding:16px 18px 20px;" id="chart-category"></div>
+      </div>
     </div>
 
     <div style="height:40px;"></div>
   </main>
 </div>
 
+<!-- 상세 모달 -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">상세 정보</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://yaihltefbhoheunrhkhn.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_XzqxPVRM40KBo9DgNv15Nw_dl3dY1qb';
 const PASSWORD     = 'IBANK';
+const PAGE_SIZE    = 50;
 
-let allInspections   = [];
-let allBadge         = [];
-let selectedUser     = 'all';
-let selectedDays     = 1;
+let allInspections = [], allBadge = [];
+let selectedUser = 'all', selectedDays = 1;
+let inspectPage = 1;
+let autoRefreshTimer = null;
+let lastCount = 0;
 
 // ── 비밀번호 ──────────────────────────────────────────────────
 function checkPassword() {
@@ -428,6 +374,7 @@ function checkPassword() {
     document.getElementById('dashboard').style.display = 'block';
     sessionStorage.setItem('auth', '1');
     loadAll();
+    startAutoRefresh();
   } else {
     const err = document.getElementById('login-error');
     err.style.display = 'block';
@@ -435,237 +382,241 @@ function checkPassword() {
     document.getElementById('pw-input').value = '';
   }
 }
-document.getElementById('pw-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') checkPassword();
-});
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
 if (sessionStorage.getItem('auth') === '1') {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 }
 
-// ── 시간 표시 ─────────────────────────────────────────────────
+// ── 시간 ─────────────────────────────────────────────────────
 function updateTime() {
-  const now = new Date();
   document.getElementById('header-time').textContent =
-    now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR');
+    new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 }
-updateTime();
-setInterval(updateTime, 1000);
+updateTime(); setInterval(updateTime, 1000);
 
-// ── Supabase ──────────────────────────────────────────────────
-async function supabaseFetch(table, params = '') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}&limit=2000`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY
+// ── 자동 새로고침 (30초) ─────────────────────────────────────
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(async () => {
+    const [insp, badge] = await Promise.all([
+      supabaseFetch('inspections', 'order=created_at.desc'),
+      supabaseFetch('badge_inspections', 'order=created_at.desc')
+    ]);
+    const newCount = insp.length + badge.length;
+    if (newCount > lastCount && lastCount > 0) {
+      showNewBanner(newCount - lastCount);
+    } else {
+      allInspections = insp; allBadge = badge;
+      lastCount = newCount;
+      renderAll();
     }
+  }, 30000);
+}
+
+function showNewBanner(n) {
+  const b = document.getElementById('new-data-banner');
+  b.textContent = `🔔 새 검수 데이터 ${n}건이 있습니다. 클릭하여 새로고침`;
+  b.style.display = 'block';
+}
+
+function dismissNewBanner() {
+  document.getElementById('new-data-banner').style.display = 'none';
+  loadAll();
+}
+
+// ── Supabase ─────────────────────────────────────────────────
+async function supabaseFetch(table, params = '') {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}&limit=5000`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-// ── 날짜 필터 ─────────────────────────────────────────────────
-function getDateFilter() {
-  if (selectedDays === 0) return '';
-  const d = new Date();
-  d.setDate(d.getDate() - (selectedDays - 1));
-  d.setHours(0, 0, 0, 0);
-  return `created_at=gte.${d.toISOString()}`;
-}
-
-function filterByDate(rows) {
-  if (selectedDays === 0) return rows;
-  const d = new Date();
-  d.setDate(d.getDate() - (selectedDays - 1));
-  d.setHours(0, 0, 0, 0);
-  return rows.filter(r => new Date(r.created_at) >= d);
-}
-
-function filterByUser(rows) {
-  if (selectedUser === 'all') return rows;
-  return rows.filter(r => r.user_name === selectedUser);
-}
-
-function applyFilters(rows) {
-  return filterByUser(filterByDate(rows));
-}
-
-// ── 필터 이벤트 ───────────────────────────────────────────────
-function setUser(el) {
-  document.querySelectorAll('.user-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  selectedUser = el.dataset.user;
-  renderAll();
-}
-
-function setDate(el) {
-  document.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  selectedDays = parseInt(el.dataset.days);
-  renderAll();
-}
-
-// ── 데이터 로드 ───────────────────────────────────────────────
 async function loadAll() {
+  document.getElementById('new-data-banner').style.display = 'none';
   try {
     const [insp, badge] = await Promise.all([
       supabaseFetch('inspections', 'order=created_at.desc'),
       supabaseFetch('badge_inspections', 'order=created_at.desc')
     ]);
-    allInspections = insp;
-    allBadge       = badge;
+    allInspections = insp; allBadge = badge;
+    lastCount = insp.length + badge.length;
 
-    // 사용자 칩 생성
+    // 사용자 칩
     const users = [...new Set([...insp, ...badge].map(r => r.user_name).filter(Boolean))];
-    const chipsEl = document.getElementById('user-chips');
-    chipsEl.innerHTML = users.map(u =>
-      `<button class="user-chip" data-user="${u}" onclick="setUser(this)">${u}</button>`
+    document.getElementById('user-chips').innerHTML = users.map(u =>
+      `<button class="chip" data-user="${u}" onclick="setUser(this)">${u}</button>`
     ).join('');
 
     renderAll();
-  } catch(e) {
-    console.error('데이터 로드 오류:', e);
-  }
+    if (sessionStorage.getItem('auth') === '1') startAutoRefresh();
+  } catch(e) { console.error('로드 오류:', e); }
+}
+
+// ── 필터 ─────────────────────────────────────────────────────
+function filterByDate(rows) {
+  if (selectedDays === 0) return rows;
+  const d = new Date(); d.setDate(d.getDate() - (selectedDays - 1)); d.setHours(0,0,0,0);
+  return rows.filter(r => new Date(r.created_at) >= d);
+}
+function filterByUser(rows) {
+  return selectedUser === 'all' ? rows : rows.filter(r => r.user_name === selectedUser);
+}
+function applyFilters(rows) { return filterByUser(filterByDate(rows)); }
+
+function setUser(el) {
+  document.querySelectorAll('.chip[data-user]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedUser = el.dataset.user;
+  resetInspectPage(); renderAll();
+}
+function setDate(el) {
+  document.querySelectorAll('.chip[data-days]').forEach(c => c.classList.remove('active', 'orange'));
+  el.classList.add('active', 'orange');
+  selectedDays = parseInt(el.dataset.days);
+  resetInspectPage(); renderAll();
 }
 
 function renderAll() {
+  renderSummary();
   renderBadgeSection();
   renderIssueSection();
   renderInspectTable();
   renderUserStats();
-  renderChart();
+  renderCharts();
 }
 
-// ── ① PW검수 섹션 ────────────────────────────────────────────
+// ── 요약 카드 ────────────────────────────────────────────────
+function renderSummary() {
+  const rows  = applyFilters(allInspections);
+  const badge = applyFilters(allBadge);
+  const today = filterByDate(allInspections.filter(() => true)); // 오늘
+  const done  = rows.filter(r => r.status === 'done' || r.status === 'snkrs').length;
+  const issues = rows.filter(r => r.kc_certification === '△' || r.status === 'mismatch').length;
+  const lastTime = rows[0]?.created_at ? fmtDate(rows[0].created_at) : '-';
+
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="sum-card orange">
+      <div class="sum-label">총 검수</div>
+      <div class="sum-value">${rows.length}</div>
+      <div class="sum-sub">PW검수 ${badge.length}건 포함</div>
+    </div>
+    <div class="sum-card green">
+      <div class="sum-label">완료</div>
+      <div class="sum-value">${done}</div>
+      <div class="sum-sub">완료율 ${rows.length ? Math.round(done/rows.length*100) : 0}%</div>
+    </div>
+    <div class="sum-card red">
+      <div class="sum-label">이슈</div>
+      <div class="sum-value">${issues}</div>
+      <div class="sum-sub">KC△ + 불일치</div>
+    </div>
+    <div class="sum-card blue">
+      <div class="sum-label">PW검수</div>
+      <div class="sum-value">${badge.length}</div>
+      <div class="sum-sub">뱃징 전용 검수</div>
+    </div>
+    <div class="sum-card amber">
+      <div class="sum-label">마지막 검수</div>
+      <div class="sum-value" style="font-size:16px;margin-top:4px;">${lastTime}</div>
+    </div>
+  `;
+
+  // 이슈 배너
+  const banner = document.getElementById('issue-banner');
+  if (issues > 0) {
+    banner.style.display = 'block';
+    banner.innerHTML = `⚠️ KC확인필요 또는 검색불일치 제품 ${issues}건이 있습니다. 아래 이슈 섹션을 확인하세요.`;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ── PW검수 ───────────────────────────────────────────────────
 function renderBadgeSection() {
   const rows = applyFilters(allBadge);
-  const total = rows.length;
   const byBadge = {};
-  rows.forEach(r => {
-    const b = r.badge || 'x';
-    byBadge[b] = (byBadge[b] || 0) + 1;
-  });
+  rows.forEach(r => { const b = r.badge || 'x'; byBadge[b] = (byBadge[b]||0)+1; });
 
-  const cards = [
-    { label: '총 PW검수', value: total, cls: 'orange' },
-    { label: '신제품', value: byBadge['신제품'] || 0, cls: 'green' },
-    { label: '베스트셀러', value: byBadge['베스트셀러'] || 0, cls: 'blue' },
-    { label: '뱃징 없음', value: byBadge['x'] || 0, cls: '' }
-  ];
-
-  document.getElementById('badge-cards').innerHTML = cards.map(c => `
-    <div class="card ${c.cls}">
-      <div class="card-label">${c.label}</div>
-      <div class="card-value">${c.value}</div>
-    </div>
-  `).join('');
-
-  document.getElementById('badge-count').textContent = total + '건';
-
-  if (!rows.length) {
-    document.getElementById('badge-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>';
-    return;
-  }
-
-  document.getElementById('badge-table-wrap').innerHTML = `
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
-        <th>뱃징</th><th>판매가격</th><th>할인율</th>
-      </tr></thead>
-      <tbody>
-        ${rows.slice(0, 100).map(r => `<tr>
-          <td>${fmtDate(r.created_at)}</td>
-          <td>${r.user_name || ''}</td>
-          <td>${modeChip(r.inspect_mode)}</td>
-          <td style="font-family:monospace;font-weight:700;">${r.style_num || ''}</td>
-          <td>${r.product_name || ''}</td>
-          <td>${badgeChip(r.badge)}</td>
-          <td style="text-align:right;">${r.sale_price ? r.sale_price + ' 원' : '-'}</td>
-          <td style="text-align:center;">${r.discount_rate || '-'}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>
+  document.getElementById('badge-cards').innerHTML = `
+    <div class="card orange"><div class="card-label">총 PW검수</div><div class="card-value">${rows.length}</div></div>
+    <div class="card green"><div class="card-label">신제품</div><div class="card-value">${byBadge['신제품']||0}</div></div>
+    <div class="card blue"><div class="card-label">베스트셀러</div><div class="card-value">${byBadge['베스트셀러']||0}</div></div>
+    <div class="card"><div class="card-label">뱃징 없음</div><div class="card-value">${byBadge['x']||0}</div></div>
   `;
+  document.getElementById('badge-count').textContent = rows.length + '건';
+
+  if (!rows.length) { document.getElementById('badge-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>'; return; }
+
+  document.getElementById('badge-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th><th>뱃징</th><th>판매가격</th><th>할인율</th></tr></thead>
+    <tbody>${rows.slice(0,100).map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
+      <td style="font-family:monospace;font-weight:700;">${r.style_num||''}</td>
+      <td>${r.product_name||''}</td><td>${badgeChip(r.badge)}</td>
+      <td style="text-align:right;">${r.sale_price ? r.sale_price+' 원' : '-'}</td>
+      <td style="text-align:center;">${(r.discount_rate||'-').replace(' 할인','')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
-// ── ② 이슈 섹션 ──────────────────────────────────────────────
+// ── 이슈 ─────────────────────────────────────────────────────
 function renderIssueSection() {
   const rows = applyFilters(allInspections);
-  const kc      = rows.filter(r => r.kc_certification === '△');
-  const mismatch = rows.filter(r => r.status === 'mismatch' || r.status === '검색불일치');
-  const snkrs   = rows.filter(r => r.status === 'snkrs' || r.status === 'SNKRS');
-  const timeout = rows.filter(r => r.status === 'timeout' || r.status === '타임아웃');
-  const issues  = rows.filter(r => r.notes && r.notes.trim() !== '');
+  const kc       = rows.filter(r => r.kc_certification === '△');
+  const mismatch = rows.filter(r => (r.status||'').includes('mismatch'));
+  const snkrs    = rows.filter(r => (r.status||'').includes('snkrs'));
+  const noted    = rows.filter(r => r.notes && r.notes.trim());
 
   document.getElementById('issue-cards').innerHTML = `
     <div class="card amber"><div class="card-label">KC 확인필요 (△)</div><div class="card-value">${kc.length}</div></div>
     <div class="card red"><div class="card-label">검색불일치</div><div class="card-value">${mismatch.length}</div></div>
-    <div class="card blue"><div class="card-label">SNKRS 제품</div><div class="card-value">${snkrs.length}</div></div>
-    <div class="card"><div class="card-label">비고 있음</div><div class="card-value">${issues.length}</div></div>
+    <div class="card blue"><div class="card-label">SNKRS</div><div class="card-value">${snkrs.length}</div></div>
+    <div class="card"><div class="card-label">비고 있음</div><div class="card-value">${noted.length}</div></div>
   `;
 
-  document.getElementById('issue-count').textContent = (kc.length + mismatch.length + snkrs.length) + '건';
+  const issueRows = [...kc, ...mismatch, ...snkrs].filter((r,i,a) => a.findIndex(x=>x.id===r.id)===i);
+  document.getElementById('issue-count').textContent = issueRows.length + '건';
 
-  const issueRows = [...kc, ...mismatch, ...snkrs].filter((r, i, a) => a.findIndex(x => x.id === r.id) === i);
+  if (!issueRows.length) { document.getElementById('issue-table-wrap').innerHTML = '<div class="empty">이슈 제품이 없습니다 ✅</div>'; return; }
 
-  if (!issueRows.length) {
-    document.getElementById('issue-table-wrap').innerHTML = '<div class="empty">이슈 제품이 없습니다 ✅</div>';
-    return;
-  }
-
-  document.getElementById('issue-table-wrap').innerHTML = `
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
-        <th>KC인증</th><th>상태</th><th>비고</th>
-      </tr></thead>
-      <tbody>
-        ${issueRows.slice(0, 100).map(r => `<tr>
-          <td>${fmtDate(r.created_at)}</td>
-          <td>${r.user_name || ''}</td>
-          <td>${modeChip(r.inspect_mode)}</td>
-          <td style="font-family:monospace;font-weight:700;">${r.input_style_num || ''}</td>
-          <td>${r.product_name || ''}</td>
-          <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
-          <td>${statusChip(r.status)}</td>
-          <td style="color:#E67E22;font-size:11px;">${r.notes || ''}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>
-  `;
+  document.getElementById('issue-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th><th>KC인증</th><th>상태</th><th>비고</th></tr></thead>
+    <tbody>${issueRows.slice(0,100).map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
+      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+      <td>${r.product_name||''}</td>
+      <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
+      <td>${statusChip(r.status)}</td>
+      <td style="color:var(--amber);font-size:11px;">${r.notes||''}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
-// ── ③ 최근 검수 내역 (페이지네이션 + 필터) ─────────────────
-let inspectPage = 1;
-const PAGE_SIZE = 50;
-
+// ── 검수 내역 ─────────────────────────────────────────────────
 function resetInspectPage() { inspectPage = 1; renderInspectTable(); }
 function resetInspectFilters() {
-  document.getElementById('search-input').value = '';
-  document.getElementById('f-mode').value = '';
-  document.getElementById('f-status').value = '';
-  document.getElementById('f-kc').value = '';
-  document.getElementById('f-badge').value = '';
+  ['search-input','f-mode','f-status','f-kc','f-badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   resetInspectPage();
 }
 
 function getInspectFiltered() {
-  const keyword = (document.getElementById('search-input')?.value || '').trim().toUpperCase();
-  const fMode   = document.getElementById('f-mode')?.value || '';
-  const fStatus = document.getElementById('f-status')?.value || '';
-  const fKc     = document.getElementById('f-kc')?.value || '';
-  const fBadge  = document.getElementById('f-badge')?.value || '';
-
+  const kw = (document.getElementById('search-input')?.value||'').trim().toUpperCase();
+  const fm = document.getElementById('f-mode')?.value||'';
+  const fs = document.getElementById('f-status')?.value||'';
+  const fk = document.getElementById('f-kc')?.value||'';
+  const fb = document.getElementById('f-badge')?.value||'';
   return applyFilters(allInspections).filter(r => {
-    if (keyword && !(r.input_style_num||'').toUpperCase().includes(keyword) &&
-        !(r.product_name||'').includes(keyword)) return false;
-    if (fMode   && (r.inspect_mode||'LIVE') !== fMode) return false;
-    if (fStatus && !(r.status||'').includes(fStatus)) return false;
-    if (fKc     && (r.kc_certification||'') !== fKc) return false;
-    if (fBadge  && (r.badge||'x') !== fBadge) return false;
+    if (kw && !(r.input_style_num||'').toUpperCase().includes(kw) && !(r.product_name||'').includes(kw)) return false;
+    if (fm && (r.inspect_mode||'LIVE') !== fm) return false;
+    if (fs && !(r.status||'').includes(fs)) return false;
+    if (fk && (r.kc_certification||'') !== fk) return false;
+    if (fb && (r.badge||'x') !== fb) return false;
     return true;
   });
 }
@@ -673,13 +624,11 @@ function getInspectFiltered() {
 function renderInspectTable() {
   const rows = getInspectFiltered();
   const total = rows.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
   if (inspectPage > totalPages) inspectPage = totalPages;
-  const start = (inspectPage - 1) * PAGE_SIZE;
-  const pageRows = rows.slice(start, start + PAGE_SIZE);
+  const pageRows = rows.slice((inspectPage-1)*PAGE_SIZE, inspectPage*PAGE_SIZE);
 
-  document.getElementById('inspect-count').textContent =
-    total + '건 · ' + inspectPage + '/' + totalPages + '페이지';
+  document.getElementById('inspect-count').textContent = `${total}건 · ${inspectPage}/${totalPages}페이지`;
 
   if (!rows.length) {
     document.getElementById('inspect-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>';
@@ -687,168 +636,208 @@ function renderInspectTable() {
     return;
   }
 
-  document.getElementById('inspect-table-wrap').innerHTML = `
-    <div style="overflow-x:auto;">
-    <table>
-      <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
-        <th>카테고리</th><th>뱃징</th><th>판매가격</th><th>할인율</th>
-        <th>KC인증</th><th>쿠폰불가</th><th>제조국</th><th>상태</th>
-      </tr></thead>
-      <tbody>
-        ${pageRows.map(r => `<tr>
-          <td>${fmtDate(r.created_at)}</td>
-          <td>${r.user_name || ''}</td>
-          <td>${modeChip(r.inspect_mode)}</td>
-          <td style="font-family:monospace;font-weight:700;">${r.input_style_num || ''}</td>
-          <td>${r.product_name || ''}</td>
-          <td>${r.category || ''}</td>
-          <td>${badgeChip(r.badge)}</td>
-          <td style="text-align:right;">${r.sale_price ? r.sale_price + ' 원' : '-'}</td>
-          <td style="text-align:center;">${r.discount_rate || '-'}</td>
-          <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
-          <td style="text-align:center;">${r.coupon_unavailable || '-'}</td>
-          <td>${r.manufacture_country || ''}</td>
-          <td>${statusChip(r.status)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>
-  `;
+  document.getElementById('inspect-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
+    <th>카테고리</th><th>뱃징</th><th>판매가격</th><th>할인율</th><th>KC인증</th><th>쿠폰불가</th><th>제조국</th><th>상태</th></tr></thead>
+    <tbody>${pageRows.map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
+      <td>${modeChip(r.inspect_mode)}</td>
+      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+      <td>${r.product_name||''}</td><td>${r.category||''}</td>
+      <td>${badgeChip(r.badge)}</td>
+      <td style="text-align:right;">${r.sale_price ? r.sale_price+' 원' : '-'}</td>
+      <td style="text-align:center;">${(r.discount_rate||'-').replace(' 할인','')}</td>
+      <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
+      <td style="text-align:center;">${r.coupon_unavailable||'-'}</td>
+      <td>${r.manufacture_country||''}</td>
+      <td>${statusChip(r.status)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
 
   // 페이지네이션
   const pag = document.getElementById('inspect-pagination');
   if (totalPages <= 1) { pag.innerHTML = ''; return; }
-
-  let btns = '';
-  btns += `<button class="page-btn" onclick="goInspectPage(${inspectPage-1})" ${inspectPage===1?'disabled':''}>‹</button>`;
-
-  // 페이지 번호 (최대 7개 표시)
-  let startP = Math.max(1, inspectPage - 3);
-  let endP   = Math.min(totalPages, startP + 6);
-  if (endP - startP < 6) startP = Math.max(1, endP - 6);
-
-  if (startP > 1) btns += `<button class="page-btn" onclick="goInspectPage(1)">1</button><span class="page-info">…</span>`;
-  for (let i = startP; i <= endP; i++) {
-    btns += `<button class="page-btn ${i===inspectPage?'active':''}" onclick="goInspectPage(${i})">${i}</button>`;
-  }
-  if (endP < totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="goInspectPage(${totalPages})">${totalPages}</button>`;
-  btns += `<button class="page-btn" onclick="goInspectPage(${inspectPage+1})" ${inspectPage===totalPages?'disabled':''}>›</button>`;
-  btns += `<span class="page-info">${start+1}–${Math.min(start+PAGE_SIZE, total)} / ${total}</span>`;
-
+  let btns = `<button class="page-btn" onclick="goPage(${inspectPage-1})" ${inspectPage===1?'disabled':''}>‹</button>`;
+  let s = Math.max(1, inspectPage-3), e = Math.min(totalPages, s+6);
+  if (e-s < 6) s = Math.max(1, e-6);
+  if (s > 1) btns += `<button class="page-btn" onclick="goPage(1)">1</button><span class="page-info">…</span>`;
+  for (let i = s; i <= e; i++) btns += `<button class="page-btn ${i===inspectPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  if (e < totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="page-btn" onclick="goPage(${inspectPage+1})" ${inspectPage===totalPages?'disabled':''}>›</button>`;
+  btns += `<span class="page-info">${(inspectPage-1)*PAGE_SIZE+1}–${Math.min(inspectPage*PAGE_SIZE,total)} / ${total}</span>`;
   pag.innerHTML = btns;
 }
 
-function goInspectPage(p) {
+function goPage(p) {
   const total = getInspectFiltered().length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  inspectPage = Math.max(1, Math.min(p, totalPages));
+  inspectPage = Math.max(1, Math.min(p, Math.ceil(total/PAGE_SIZE)));
   renderInspectTable();
-  document.querySelector('.section-title + .table-wrap, #inspect-table-wrap')?.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('inspect-table-wrap')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-// ── ④ 사용자별 현황 ───────────────────────────────────────────
+// ── 사용자 현황 ──────────────────────────────────────────────
 function renderUserStats() {
-  const inspRows  = applyFilters(allInspections);
-  const badgeRows = applyFilters(allBadge);
-
   function buildStats(rows) {
-    const byUser = {};
-    rows.forEach(r => { byUser[r.user_name] = (byUser[r.user_name] || 0) + 1; });
-    const sorted = Object.entries(byUser).sort((a,b) => b[1]-a[1]);
-    const max = sorted[0]?.[1] || 1;
-    return { sorted, max };
+    const m = {}; rows.forEach(r => { m[r.user_name]=(m[r.user_name]||0)+1; });
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
   }
-
   function renderStat(el, rows) {
-    const { sorted, max } = buildStats(rows);
+    const sorted = buildStats(rows); const max = sorted[0]?.[1]||1;
     if (!sorted.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
-    el.innerHTML = sorted.map(([name, cnt]) => `
+    el.innerHTML = sorted.map(([name,cnt]) => `
       <div class="user-stat-row">
         <div class="user-avatar">${name.charAt(0)}</div>
         <div class="user-stat-name">${name}</div>
-        <div class="user-stat-bar-wrap">
-          <div class="user-stat-bar" style="width:${Math.round(cnt/max*100)}%"></div>
-        </div>
+        <div class="user-stat-bar-wrap"><div class="user-stat-bar" style="width:${Math.round(cnt/max*100)}%"></div></div>
         <div class="user-stat-num">${cnt}</div>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
-
-  renderStat(document.getElementById('user-inspect-wrap'), inspRows);
-  renderStat(document.getElementById('user-badge-wrap'), badgeRows);
+  renderStat(document.getElementById('user-inspect-wrap'), applyFilters(allInspections));
+  renderStat(document.getElementById('user-badge-wrap'), applyFilters(allBadge));
 }
 
-// ── ⑤ 날짜별 차트 ────────────────────────────────────────────
-function renderChart() {
+// ── 차트 ─────────────────────────────────────────────────────
+function renderCharts() {
   const rows = applyFilters(allInspections);
+
+  // 일별 차트
   const byDate = {};
-  rows.forEach(r => {
-    const d = r.created_at?.slice(0,10);
-    if (d) byDate[d] = (byDate[d] || 0) + 1;
-  });
-  const dates = Object.keys(byDate).sort();
-  if (!dates.length) {
-    document.getElementById('chart-wrap').innerHTML = '<div class="empty">데이터 없음</div>';
-    return;
-  }
-  const max = Math.max(...Object.values(byDate));
-  document.getElementById('chart-wrap').innerHTML = `
-    <div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:24px;position:relative;">
-      ${dates.map(d => `
-        <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px;height:100%;justify-content:flex-end;">
-          <div style="font-size:10px;font-weight:700;color:var(--gray-500);">${byDate[d]}</div>
-          <div style="width:100%;background:var(--nike-orange);border-radius:2px 2px 0 0;height:${Math.round(byDate[d]/max*80)}px;"></div>
-          <div style="font-size:9px;color:var(--gray-500);white-space:nowrap;transform:rotate(-30deg);margin-top:4px;">${d.slice(5)}</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+  rows.forEach(r => { const d = r.created_at?.slice(0,10); if(d) byDate[d]=(byDate[d]||0)+1; });
+  const dates = Object.keys(byDate).sort().slice(-14);
+  const maxD = Math.max(...dates.map(d=>byDate[d]), 1);
+  document.getElementById('chart-daily').innerHTML = dates.length ? `
+    <div class="chart-bar-wrap">
+      ${dates.map(d => `<div class="chart-col">
+        <div class="chart-val">${byDate[d]}</div>
+        <div class="chart-bar" style="height:${Math.round(byDate[d]/maxD*80)}px;"></div>
+        <div class="chart-label">${d.slice(5)}</div>
+      </div>`).join('')}
+    </div>` : '<div class="empty">데이터 없음</div>';
+
+  // 뱃징 분포
+  const byBadge = {};
+  rows.forEach(r => { const b=r.badge||'x'; byBadge[b]=(byBadge[b]||0)+1; });
+  const badgeColors = {'신제품':'#1A6B3C','베스트셀러':'#FF6B00','품절':'#E4002B','재생 소재':'#1A3A6B','x':'#CCCCCC'};
+  const badgeEntries = Object.entries(byBadge).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const totalB = badgeEntries.reduce((s,[,v])=>s+v, 0)||1;
+  document.getElementById('chart-badge-dist').innerHTML = badgeEntries.length ? `
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      ${(() => {
+        let offset = 0;
+        return badgeEntries.map(([name,cnt]) => {
+          const pct = cnt/totalB; const deg = pct*360;
+          const r=30, cx=40, cy=40;
+          const startAngle = offset * Math.PI/180;
+          const endAngle = (offset+deg) * Math.PI/180;
+          const x1=cx+r*Math.sin(startAngle), y1=cy-r*Math.cos(startAngle);
+          const x2=cx+r*Math.sin(endAngle), y2=cy-r*Math.cos(endAngle);
+          const large = deg > 180 ? 1 : 0;
+          offset += deg;
+          return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${badgeColors[name]||'#888'}"/>`;
+        }).join('');
+      })()}
+      <circle cx="40" cy="40" r="18" fill="white"/>
+    </svg>
+    <div class="donut-legend">
+      ${badgeEntries.map(([name,cnt]) => `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${badgeColors[name]||'#888'};"></div>
+          <span>${name === 'x' ? '없음' : name}</span>
+          <span style="margin-left:auto;font-weight:700;">${cnt}</span>
+        </div>`).join('')}
+    </div>` : '<div class="empty">데이터 없음</div>';
+
+  // 카테고리 Top5
+  const byCat = {};
+  rows.forEach(r => { if(r.category) byCat[r.category]=(byCat[r.category]||0)+1; });
+  const catEntries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxC = catEntries[0]?.[1]||1;
+  document.getElementById('chart-category').innerHTML = catEntries.length ? catEntries.map(([name,cnt]) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="font-size:11px;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+      <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+        <div style="width:${Math.round(cnt/maxC*100)}%;height:100%;background:var(--orange);border-radius:3px;"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;min-width:24px;text-align:right;">${cnt}</div>
+    </div>`).join('') : '<div class="empty">데이터 없음</div>';
 }
+
+// ── 모달 ─────────────────────────────────────────────────────
+function showModal(r) {
+  const fields = [
+    ['검수일시', fmtDate(r.created_at)],
+    ['사용자', r.user_name],
+    ['모드', r.inspect_mode || 'LIVE'],
+    ['스타일번호(입력)', r.input_style_num || r.style_num],
+    ['스타일번호(페이지)', r.page_style_num],
+    ['제품명', r.product_name],
+    ['카테고리', r.category],
+    ['뱃징', r.badge],
+    ['판매가격', r.sale_price ? r.sale_price + ' 원' : '-'],
+    ['할인율', (r.discount_rate||'-').replace(' 할인','')],
+    ['KC인증', r.kc_certification],
+    ['사이즈', r.sizes],
+    ['쿠폰불가', r.coupon_unavailable],
+    ['제조국', r.manufacture_country],
+    ['제조자/수입자', r.importer_manufacturer],
+    ['비고', r.notes],
+    ['상태', r.status],
+    ['URL', r.product_url],
+  ];
+  document.getElementById('modal-title').textContent = r.input_style_num || r.style_num || '상세 정보';
+  document.getElementById('modal-body').innerHTML = fields.filter(([,v])=>v).map(([k,v]) => `
+    <div class="modal-row">
+      <div class="modal-key">${k}</div>
+      <div class="modal-val">${k==='URL' ? `<a class="modal-link" href="${v}" target="_blank">${v}</a>` : v}</div>
+    </div>`).join('');
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('show');
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ── 헬퍼 ─────────────────────────────────────────────────────
-function modeChip(m) {
-  if (!m || m === 'LIVE') return '<span class="badge badge-blue">LIVE</span>';
-  if (m === 'STEALTH')    return '<span class="badge badge-gray">STEALTH</span>';
-  if (m === '뱃징')       return '<span class="badge badge-orange">뱃징</span>';
-  return `<span class="badge badge-gray">${m}</span>`;
-}
-
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  // KST = UTC+9
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  const kst = new Date(d.getTime() + 9*60*60*1000);
   return (kst.getUTCMonth()+1) + '/' + kst.getUTCDate() + ' ' +
     String(kst.getUTCHours()).padStart(2,'0') + ':' + String(kst.getUTCMinutes()).padStart(2,'0');
 }
-
 function badgeChip(b) {
-  if (!b || b === 'x') return '<span class="badge badge-gray">-</span>';
-  if (b === '신제품') return `<span class="badge badge-green">${b}</span>`;
-  if (b === '베스트셀러') return `<span class="badge badge-orange">${b}</span>`;
-  if (b === '품절') return `<span class="badge badge-red">${b}</span>`;
+  if (!b || b==='x') return '<span class="badge badge-gray">-</span>';
+  if (b==='신제품') return `<span class="badge badge-green">${b}</span>`;
+  if (b==='베스트셀러') return `<span class="badge badge-orange">${b}</span>`;
+  if (b==='품절') return `<span class="badge badge-red">${b}</span>`;
   return `<span class="badge badge-blue">${b}</span>`;
 }
-
 function kcChip(kc) {
-  if (kc === 'O') return '<span class="badge badge-green">O</span>';
-  if (kc === '△') return '<span class="badge badge-amber">△</span>';
+  if (kc==='O') return '<span class="badge badge-green">O</span>';
+  if (kc==='△') return '<span class="badge badge-amber">△</span>';
   return '<span class="badge badge-gray">-</span>';
 }
-
 function statusChip(s) {
   if (!s) return '';
-  if (s === 'done' || s === '완료') return '<span class="badge badge-green">완료</span>';
-  if (s === 'snkrs' || s === 'SNKRS') return '<span class="badge badge-purple">SNKRS</span>';
-  if (s === 'timeout' || s === '타임아웃') return '<span class="badge badge-red">타임아웃</span>';
-  if (s === 'mismatch' || s === '검색불일치') return '<span class="badge badge-amber">불일치</span>';
-  if (s === 'done_tracking') return '<span class="badge badge-blue">트레킹완료</span>';
-  if (s === 'not_found_tracking') return '<span class="badge badge-amber">미발견</span>';
+  if (s==='done'||s==='완료') return '<span class="badge badge-green">완료</span>';
+  if (s==='snkrs'||s==='SNKRS') return '<span class="badge badge-purple">SNKRS</span>';
+  if (s==='timeout'||s==='타임아웃') return '<span class="badge badge-red">타임아웃</span>';
+  if (s==='mismatch'||s==='검색불일치') return '<span class="badge badge-amber">불일치</span>';
+  if (s==='done_tracking') return '<span class="badge badge-blue">트레킹완료</span>';
+  if (s==='not_found_tracking') return '<span class="badge badge-amber">미발견</span>';
   return `<span class="badge badge-gray">${s}</span>`;
+}
+function modeChip(m) {
+  if (!m||m==='LIVE') return '<span class="badge badge-blue">LIVE</span>';
+  if (m==='STEALTH') return '<span class="badge badge-gray">STEALTH</span>';
+  if (m==='뱃징') return '<span class="badge badge-orange">뱃징</span>';
+  return `<span class="badge badge-gray">${m}</span>`;
 }
 
 // ── 초기 로드 ─────────────────────────────────────────────────
-if (sessionStorage.getItem('auth') === '1') loadAll();
+if (sessionStorage.getItem('auth') === '1') { loadAll(); startAutoRefresh(); }
 </script>
 </body>
 </html>
