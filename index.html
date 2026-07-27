@@ -504,13 +504,14 @@ function renderBadgeSection() {
     <div style="overflow-x:auto;">
     <table>
       <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
         <th>뱃징</th><th>판매가격</th><th>할인율</th>
       </tr></thead>
       <tbody>
         ${rows.slice(0, 100).map(r => `<tr>
           <td>${fmtDate(r.created_at)}</td>
           <td>${r.user_name || ''}</td>
+          <td>${modeChip(r.inspect_mode)}</td>
           <td style="font-family:monospace;font-weight:700;">${r.style_num || ''}</td>
           <td>${r.product_name || ''}</td>
           <td>${badgeChip(r.badge)}</td>
@@ -551,13 +552,14 @@ function renderIssueSection() {
     <div style="overflow-x:auto;">
     <table>
       <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
         <th>KC인증</th><th>상태</th><th>비고</th>
       </tr></thead>
       <tbody>
         ${issueRows.slice(0, 100).map(r => `<tr>
           <td>${fmtDate(r.created_at)}</td>
           <td>${r.user_name || ''}</td>
+          <td>${modeChip(r.inspect_mode)}</td>
           <td style="font-family:monospace;font-weight:700;">${r.input_style_num || ''}</td>
           <td>${r.product_name || ''}</td>
           <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
@@ -591,7 +593,7 @@ function renderInspectTable() {
     <div style="overflow-x:auto;">
     <table>
       <thead><tr>
-        <th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+        <th>검수일시</th><th>사용자</th><th>모드</th><th>스타일번호</th><th>제품명</th>
         <th>카테고리</th><th>뱃징</th><th>판매가격</th><th>할인율</th>
         <th>KC인증</th><th>쿠폰불가</th><th>제조국</th><th>상태</th>
       </tr></thead>
@@ -599,6 +601,7 @@ function renderInspectTable() {
         ${rows.slice(0, 200).map(r => `<tr>
           <td>${fmtDate(r.created_at)}</td>
           <td>${r.user_name || ''}</td>
+          <td>${modeChip(r.inspect_mode)}</td>
           <td style="font-family:monospace;font-weight:700;">${r.input_style_num || ''}</td>
           <td>${r.product_name || ''}</td>
           <td>${r.category || ''}</td>
@@ -675,6 +678,13 @@ function renderChart() {
 }
 
 // ── 헬퍼 ─────────────────────────────────────────────────────
+function modeChip(m) {
+  if (!m || m === 'LIVE') return '<span class="badge badge-blue">LIVE</span>';
+  if (m === 'STEALTH')    return '<span class="badge badge-gray">STEALTH</span>';
+  if (m === '뱃징')       return '<span class="badge badge-orange">뱃징</span>';
+  return `<span class="badge badge-gray">${m}</span>`;
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
