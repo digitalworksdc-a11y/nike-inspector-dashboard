@@ -231,6 +231,42 @@
     font-size: 12px;
   }
 
+  /* ── 페이지네이션 ── */
+  .pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px; padding: 14px 20px; border-top: 1px solid var(--gray-100);
+  }
+  .page-btn {
+    width: 32px; height: 32px; border: 1.5px solid var(--gray-300);
+    background: var(--white); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s; color: var(--gray-700);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .page-btn:hover:not(.active):not(:disabled) { border-color: var(--black); color: var(--black); }
+  .page-btn.active { background: var(--black); border-color: var(--black); color: var(--white); }
+  .page-btn:disabled { opacity: .3; cursor: default; }
+  .page-info { font-size: 11px; color: var(--gray-500); padding: 0 8px; }
+
+  /* ── 필터 바 ── */
+  .filter-row {
+    display: flex; gap: 8px; padding: 10px 20px;
+    border-bottom: 1px solid var(--gray-100); flex-wrap: wrap; align-items: center;
+    background: var(--gray-50);
+  }
+  .filter-select {
+    padding: 5px 10px; border: 1.5px solid var(--gray-300);
+    font-size: 11px; font-weight: 600; background: var(--white);
+    cursor: pointer; outline: none; color: var(--gray-700);
+    transition: border-color .2s;
+  }
+  .filter-select:focus { border-color: var(--black); }
+  .btn-reset-filter {
+    padding: 5px 12px; border: 1.5px solid var(--gray-300);
+    background: var(--white); font-size: 11px; font-weight: 700;
+    cursor: pointer; color: var(--gray-500); transition: all .15s;
+  }
+  .btn-reset-filter:hover { border-color: var(--nike-red); color: var(--nike-red); }
+
   /* ── 반응형 ── */
   @media (max-width: 900px) {
     .cards-4 { grid-template-columns: repeat(2, 1fr); }
@@ -313,10 +349,41 @@
         <span class="table-title">검수 결과</span>
         <div style="display:flex;gap:8px;align-items:center;">
           <span class="table-count" id="inspect-count"></span>
-          <input class="search-input" id="search-input" placeholder="스타일번호 / 제품명 검색" oninput="renderInspectTable()">
+          <input class="search-input" id="search-input" placeholder="스타일번호 / 제품명 검색" oninput="resetInspectPage()">
         </div>
       </div>
+      <div class="filter-row">
+        <select class="filter-select" id="f-mode" onchange="resetInspectPage()">
+          <option value="">모드 전체</option>
+          <option value="LIVE">LIVE</option>
+          <option value="STEALTH">STEALTH</option>
+          <option value="뱃징">뱃징</option>
+        </select>
+        <select class="filter-select" id="f-status" onchange="resetInspectPage()">
+          <option value="">상태 전체</option>
+          <option value="done">완료</option>
+          <option value="mismatch">검색불일치</option>
+          <option value="timeout">타임아웃</option>
+          <option value="snkrs">SNKRS</option>
+          <option value="done_tracking">트레킹완료</option>
+        </select>
+        <select class="filter-select" id="f-kc" onchange="resetInspectPage()">
+          <option value="">KC 전체</option>
+          <option value="O">O (인증)</option>
+          <option value="△">△ (확인필요)</option>
+          <option value="-">- (없음)</option>
+        </select>
+        <select class="filter-select" id="f-badge" onchange="resetInspectPage()">
+          <option value="">뱃징 전체</option>
+          <option value="신제품">신제품</option>
+          <option value="베스트셀러">베스트셀러</option>
+          <option value="품절">품절</option>
+          <option value="x">없음</option>
+        </select>
+        <button class="btn-reset-filter" onclick="resetInspectFilters()">✕ 초기화</button>
+      </div>
       <div id="inspect-table-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="inspect-pagination"></div>
     </div>
 
     <!-- ④ 사용자별 현황 -->
@@ -571,21 +638,52 @@ function renderIssueSection() {
   `;
 }
 
-// ── ③ 최근 검수 내역 ─────────────────────────────────────────
-function renderInspectTable() {
-  const keyword = (document.getElementById('search-input')?.value || '').trim().toUpperCase();
-  let rows = applyFilters(allInspections);
-  if (keyword) {
-    rows = rows.filter(r =>
-      (r.input_style_num || '').toUpperCase().includes(keyword) ||
-      (r.product_name || '').includes(keyword)
-    );
-  }
+// ── ③ 최근 검수 내역 (페이지네이션 + 필터) ─────────────────
+let inspectPage = 1;
+const PAGE_SIZE = 50;
 
-  document.getElementById('inspect-count').textContent = rows.length + '건';
+function resetInspectPage() { inspectPage = 1; renderInspectTable(); }
+function resetInspectFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('f-mode').value = '';
+  document.getElementById('f-status').value = '';
+  document.getElementById('f-kc').value = '';
+  document.getElementById('f-badge').value = '';
+  resetInspectPage();
+}
+
+function getInspectFiltered() {
+  const keyword = (document.getElementById('search-input')?.value || '').trim().toUpperCase();
+  const fMode   = document.getElementById('f-mode')?.value || '';
+  const fStatus = document.getElementById('f-status')?.value || '';
+  const fKc     = document.getElementById('f-kc')?.value || '';
+  const fBadge  = document.getElementById('f-badge')?.value || '';
+
+  return applyFilters(allInspections).filter(r => {
+    if (keyword && !(r.input_style_num||'').toUpperCase().includes(keyword) &&
+        !(r.product_name||'').includes(keyword)) return false;
+    if (fMode   && (r.inspect_mode||'LIVE') !== fMode) return false;
+    if (fStatus && !(r.status||'').includes(fStatus)) return false;
+    if (fKc     && (r.kc_certification||'') !== fKc) return false;
+    if (fBadge  && (r.badge||'x') !== fBadge) return false;
+    return true;
+  });
+}
+
+function renderInspectTable() {
+  const rows = getInspectFiltered();
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (inspectPage > totalPages) inspectPage = totalPages;
+  const start = (inspectPage - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('inspect-count').textContent =
+    total + '건 · ' + inspectPage + '/' + totalPages + '페이지';
 
   if (!rows.length) {
     document.getElementById('inspect-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>';
+    document.getElementById('inspect-pagination').innerHTML = '';
     return;
   }
 
@@ -598,7 +696,7 @@ function renderInspectTable() {
         <th>KC인증</th><th>쿠폰불가</th><th>제조국</th><th>상태</th>
       </tr></thead>
       <tbody>
-        ${rows.slice(0, 200).map(r => `<tr>
+        ${pageRows.map(r => `<tr>
           <td>${fmtDate(r.created_at)}</td>
           <td>${r.user_name || ''}</td>
           <td>${modeChip(r.inspect_mode)}</td>
@@ -616,6 +714,36 @@ function renderInspectTable() {
       </tbody>
     </table></div>
   `;
+
+  // 페이지네이션
+  const pag = document.getElementById('inspect-pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  let btns = '';
+  btns += `<button class="page-btn" onclick="goInspectPage(${inspectPage-1})" ${inspectPage===1?'disabled':''}>‹</button>`;
+
+  // 페이지 번호 (최대 7개 표시)
+  let startP = Math.max(1, inspectPage - 3);
+  let endP   = Math.min(totalPages, startP + 6);
+  if (endP - startP < 6) startP = Math.max(1, endP - 6);
+
+  if (startP > 1) btns += `<button class="page-btn" onclick="goInspectPage(1)">1</button><span class="page-info">…</span>`;
+  for (let i = startP; i <= endP; i++) {
+    btns += `<button class="page-btn ${i===inspectPage?'active':''}" onclick="goInspectPage(${i})">${i}</button>`;
+  }
+  if (endP < totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="goInspectPage(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="page-btn" onclick="goInspectPage(${inspectPage+1})" ${inspectPage===totalPages?'disabled':''}>›</button>`;
+  btns += `<span class="page-info">${start+1}–${Math.min(start+PAGE_SIZE, total)} / ${total}</span>`;
+
+  pag.innerHTML = btns;
+}
+
+function goInspectPage(p) {
+  const total = getInspectFiltered().length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  inspectPage = Math.max(1, Math.min(p, totalPages));
+  renderInspectTable();
+  document.querySelector('.section-title + .table-wrap, #inspect-table-wrap')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // ── ④ 사용자별 현황 ───────────────────────────────────────────
