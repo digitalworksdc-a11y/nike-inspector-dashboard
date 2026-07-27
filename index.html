@@ -50,7 +50,7 @@
   #issue-banner { display: none; background: var(--red); color: var(--white); padding: 10px 28px; font-size: 12px; font-weight: 700; }
 
   /* ── 필터 바 ── */
-  .filter-bar { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 28px; display: flex; align-items: center; gap: 8px; height: 46px; overflow-x: auto; }
+  .filter-bar { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 28px; display: flex; align-items: center; gap: 8px; height: 46px; overflow-x: auto; position: sticky; top: 52px; z-index: 99; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
   .filter-label { font-size: 10px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; white-space: nowrap; margin-right: 4px; }
   .chip { padding: 4px 12px; border: 1.5px solid var(--gray-300); background: var(--white); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; border-radius: 20px; color: var(--gray-700); white-space: nowrap; }
   .chip.active { background: var(--black); border-color: var(--black); color: var(--white); }
@@ -194,6 +194,7 @@
     th, td { padding: 7px 8px; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -287,7 +288,7 @@
 
     <!-- 이슈 -->
     <div class="section-title">⚠️ 이슈 제품</div>
-    <div class="cards cards-4" id="issue-cards"></div>
+    <div class="cards cards-4" id="issue-cards" style="grid-template-columns:repeat(5,1fr);"></div>
     <div class="table-wrap" style="margin-top:10px;">
       <div class="table-header">
         <span class="table-title">이슈 제품 목록</span>
@@ -334,6 +335,7 @@
           <option value="x">없음</option>
         </select>
         <button class="btn-reset-filter" onclick="resetInspectFilters()">✕ 초기화</button>
+        <button class="btn-reset-filter" onclick="downloadExcel()" style="margin-left:auto;background:var(--green);color:#fff;border-color:var(--green);font-weight:800;">📥 엑셀 다운로드</button>
       </div>
       <div id="inspect-table-wrap"><div class="loading">로딩 중...</div></div>
       <div class="pagination" id="inspect-pagination"></div>
@@ -577,12 +579,14 @@ function renderIssueSection() {
   const snkrs    = rows.filter(r => ['snkrs','SNKRS'].includes(r.status||''));
   const timeout  = rows.filter(r => ['timeout','타임아웃'].includes(r.status||''));
   const noted    = rows.filter(r => r.notes && r.notes.trim());
+  const resolved = rows.filter(r => r.resolved === true);
 
   document.getElementById('issue-cards').innerHTML = `
     <div class="card amber"><div class="card-label">KC 확인필요 (△)</div><div class="card-value">${kc.length}</div></div>
     <div class="card red"><div class="card-label">검색불일치</div><div class="card-value">${mismatch.length}</div></div>
     <div class="card blue"><div class="card-label">SNKRS</div><div class="card-value">${snkrs.length}</div></div>
     <div class="card red"><div class="card-label">타임아웃</div><div class="card-value">${timeout.length}</div></div>
+    <div class="card green"><div class="card-label">처리완료 ✅</div><div class="card-value">${resolved.length}</div></div>
   `;
 
   const issueRows = [...kc, ...mismatch, ...snkrs, ...timeout].filter((r,i,a) => a.findIndex(x=>x.id===r.id)===i);
@@ -591,14 +595,20 @@ function renderIssueSection() {
   if (!issueRows.length) { document.getElementById('issue-table-wrap').innerHTML = '<div class="empty">이슈 제품이 없습니다 ✅</div>'; return; }
 
   document.getElementById('issue-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
-    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th><th>KC인증</th><th>상태</th><th>비고</th></tr></thead>
-    <tbody>${issueRows.slice(0,100).map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
-      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
-      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
-      <td>${r.product_name||''}</td>
-      <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
-      <td>${statusChip(r.status)}</td>
-      <td style="color:var(--amber);font-size:11px;">${r.notes||''}</td>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th><th>KC인증</th><th>상태</th><th>비고</th><th>처리여부</th><th>처리자</th><th>처리내용</th><th>처리일시</th><th></th></tr></thead>
+    <tbody>${issueRows.slice(0,100).map(r => `<tr style="${r.resolved ? 'opacity:.5;' : ''}">
+      <td onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${fmtDate(r.created_at)}</td>
+      <td onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${r.user_name||''}</td>
+      <td onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})" style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+      <td onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${r.product_name||''}</td>
+      <td style="text-align:center;" onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${kcChip(r.kc_certification)}</td>
+      <td onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${statusChip(r.status)}</td>
+      <td style="color:var(--amber);font-size:11px;" onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">${r.notes||''}</td>
+      <td style="text-align:center;">${r.resolved ? '<span class="badge badge-green">완료</span>' : '<span class="badge badge-gray">미처리</span>'}</td>
+      <td>${r.resolved_by||''}</td>
+      <td style="font-size:11px;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;">${r.resolved_comment||''}</td>
+      <td>${r.resolved_at ? fmtDate(r.resolved_at) : ''}</td>
+      <td>${r.resolved ? '' : `<button onclick="resolveIssue('${r.id}')" style="padding:3px 8px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;">처리완료</button>`}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -792,6 +802,10 @@ function showModal(r) {
     ['비고', r.notes],
     ['상태', r.status],
     ['URL', r.product_url],
+    ['처리여부', r.resolved ? '처리완료' : '미처리'],
+    ['처리자', r.resolved_by],
+    ['처리내용', r.resolved_comment],
+    ['처리일시', r.resolved_at ? fmtDate(r.resolved_at) : null],
   ];
   document.getElementById('modal-title').textContent = r.input_style_num || r.style_num || '상세 정보';
   document.getElementById('modal-body').innerHTML = fields.filter(([,v])=>v).map(([k,v]) => `
@@ -807,6 +821,155 @@ function closeModal(e) {
   }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── 엑셀 다운로드 ────────────────────────────────────────────
+function downloadExcel() {
+  const rows = getInspectFiltered();
+  if (!rows.length) { alert('다운로드할 데이터가 없습니다.'); return; }
+
+  const headers = [
+    'No', '검수일시', '사용자', '모드', '스타일번호(입력)', '스타일번호(페이지)',
+    '제품명', '카테고리', '뱃징', '판매가격', '할인율', 'KC인증',
+    '사이즈', '쿠폰불가', '제조국', '제조자/수입자', '비고', 'URL', '상태',
+    '처리여부', '처리자', '처리내용', '처리일시'
+  ];
+
+  const data = rows.map((r, i) => [
+    i + 1,
+    fmtDate(r.created_at),
+    r.user_name || '',
+    r.inspect_mode || 'LIVE',
+    r.input_style_num || '',
+    r.page_style_num || '',
+    r.product_name || '',
+    r.category || '',
+    r.badge || 'x',
+    r.sale_price || '',
+    (r.discount_rate || '-').replace(' 할인', ''),
+    r.kc_certification || '',
+    r.sizes || '',
+    r.coupon_unavailable || '',
+    r.manufacture_country || '',
+    r.importer_manufacturer || '',
+    r.notes || '',
+    r.product_url || '',
+    r.status || '',
+    r.resolved ? '처리완료' : '미처리',
+    r.resolved_by || '',
+    r.resolved_comment || '',
+    r.resolved_at ? fmtDate(r.resolved_at) : ''
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+  // 헤더 스타일
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const addr = XLSX.utils.encode_cell({ r: 0, c });
+    if (!ws[addr]) continue;
+    ws[addr].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '111111' } },
+      alignment: { horizontal: 'center' }
+    };
+  }
+
+  // 열 너비
+  ws['!cols'] = [
+    {wch:4},{wch:12},{wch:8},{wch:8},{wch:14},{wch:14},
+    {wch:28},{wch:16},{wch:10},{wch:10},{wch:8},{wch:8},
+    {wch:40},{wch:8},{wch:14},{wch:28},{wch:24},{wch:40},{wch:10},
+    {wch:8},{wch:10},{wch:12}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '검수결과');
+
+  // 파일명 — 현재 필터 정보 포함
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9*60*60*1000);
+  const dateStr = kst.getUTCFullYear() +
+    String(kst.getUTCMonth()+1).padStart(2,'0') +
+    String(kst.getUTCDate()).padStart(2,'0');
+  const userStr = selectedUser === 'all' ? '전체' : selectedUser;
+  const dayStr  = selectedDays === 0 ? '전체기간' : selectedDays === 1 ? '오늘' : selectedDays + '일';
+
+  XLSX.writeFile(wb, `DTC3검수결과_${userStr}_${dayStr}_${dateStr}.xlsx`);
+}
+
+// ── 이슈 처리완료 ────────────────────────────────────────────
+async function resolveIssue(id) {
+  // 처리 입력 모달 표시
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;width:400px;max-width:95vw;padding:28px;">
+      <div style="font-size:14px;font-weight:800;margin-bottom:20px;">✅ 이슈 처리 완료 등록</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;display:block;margin-bottom:4px;">처리 담당자 *</label>
+        <input id="resolve-name" type="text" placeholder="이름 입력" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;" />
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;display:block;margin-bottom:4px;">처리 내용 / 코멘트 *</label>
+        <textarea id="resolve-comment" placeholder="이슈 해결 방법, 조치 내용 등을 입력하세요" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;height:100px;resize:vertical;font-family:sans-serif;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="resolve-cancel" style="padding:9px 16px;background:#fff;border:1.5px solid #ccc;font-size:12px;font-weight:700;cursor:pointer;">취소</button>
+        <button id="resolve-confirm" style="padding:9px 16px;background:#1A6B3C;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">처리완료 저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('resolve-name').focus();
+
+  // 취소
+  document.getElementById('resolve-cancel').onclick = () => document.body.removeChild(overlay);
+  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
+
+  // 확인
+  document.getElementById('resolve-confirm').onclick = async () => {
+    const name    = document.getElementById('resolve-name').value.trim();
+    const comment = document.getElementById('resolve-comment').value.trim();
+    if (!name) { document.getElementById('resolve-name').style.borderColor = '#E4002B'; return; }
+    if (!comment) { document.getElementById('resolve-comment').style.borderColor = '#E4002B'; return; }
+
+    const now = new Date();
+    const kst = new Date(now.getTime() + 9*60*60*1000);
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/inspections?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          resolved:         true,
+          resolved_by:      name,
+          resolved_comment: comment,
+          resolved_at:      kst.toISOString().replace('Z', '+09:00')
+        })
+      });
+      if (res.ok) {
+        const row = allInspections.find(r => r.id === id);
+        if (row) {
+          row.resolved         = true;
+          row.resolved_by      = name;
+          row.resolved_comment = comment;
+          row.resolved_at      = kst.toISOString();
+        }
+        document.body.removeChild(overlay);
+        renderIssueSection();
+        renderSummary();
+      } else {
+        alert('처리 중 오류가 발생했습니다.');
+      }
+    } catch(e) {
+      alert('처리 중 오류가 발생했습니다: ' + e.message);
+    }
+  };
+}
 
 // ── 헬퍼 ─────────────────────────────────────────────────────
 function fmtDate(iso) {
