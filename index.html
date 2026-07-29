@@ -96,7 +96,7 @@
   #issue-banner { display: none; background: var(--red); color: var(--white); padding: 10px 28px; font-size: 12px; font-weight: 700; }
 
   /* ── 필터 바 ── */
-  .filter-bar { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 28px; display: flex; align-items: center; gap: 8px; height: 46px; overflow-x: auto; position: sticky; top: 52px; z-index: 99; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .filter-bar { background: var(--white); border-bottom: 1px solid var(--gray-100); padding: 0 28px; display: flex; align-items: center; gap: 8px; height: 46px; overflow-x: auto; position: sticky; top: 98px; z-index: 99; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
   .filter-label { font-size: 10px; font-weight: 700; color: var(--gray-500); letter-spacing: 1px; white-space: nowrap; margin-right: 4px; }
   .chip { padding: 4px 12px; border: 1.5px solid var(--gray-300); background: var(--white); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; border-radius: 20px; color: var(--gray-700); white-space: nowrap; }
   .chip.active { background: var(--black); border-color: var(--black); color: var(--white); }
@@ -223,9 +223,25 @@
   .empty { padding: 28px; text-align: center; color: var(--gray-300); font-size: 12px; }
 
   /* ── 반응형 ── */
+  /* ── 탭 ── */
+  .tab-bar {
+    background: var(--white); border-bottom: 2px solid var(--gray-100);
+    display: flex; padding: 0 28px; position: sticky; top: 52px; z-index: 95;
+  }
+  .tab-btn {
+    padding: 12px 20px; font-size: 12px; font-weight: 700;
+    color: var(--gray-500); border: none; background: none;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all .15s; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--black); }
+  .tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
   /* ── 네비게이션 ── */
   #side-nav {
-    position: fixed; left: 0; top: 52px; bottom: 0;
+    position: fixed; left: 0; top: 98px; bottom: 0;
     width: 140px; background: var(--white);
     border-right: 1px solid var(--gray-100);
     display: flex; flex-direction: column;
@@ -308,19 +324,27 @@
     <a class="nav-item" href="#sec-stats" onclick="scrollToSec('sec-stats',this)">
       <span class="nav-icon">📈</span>통계
     </a>
+    <a class="nav-item" href="#sec-issue" onclick="scrollToSec('sec-issue',this)">
+      <span class="nav-icon">⚠️</span>이슈 제품
+    </a>
     <a class="nav-item" href="#sec-price" onclick="scrollToSec('sec-price',this)">
       <span class="nav-icon">💰</span>가격 변동
     </a>
     <a class="nav-item" href="#sec-badge" onclick="scrollToSec('sec-badge',this)">
       <span class="nav-icon">🏷</span>뱃징검수
     </a>
-    <a class="nav-item" href="#sec-issue" onclick="scrollToSec('sec-issue',this)">
-      <span class="nav-icon">⚠️</span>이슈 제품
+    <a class="nav-item" href="#sec-live" onclick="scrollToSec('sec-live',this)">
+      <span class="nav-icon">📡</span>라이브검수
     </a>
-    <a class="nav-item" href="#sec-inspect" onclick="scrollToSec('sec-inspect',this)">
-      <span class="nav-icon">📋</span>검수 내역
+    <a class="nav-item" href="#sec-stealth" onclick="scrollToSec('sec-stealth',this)">
+      <span class="nav-icon">🕵</span>스텔스검수
     </a>
   </nav>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('main', this)">📊 메인 대시보드</button>
+    <button class="tab-btn" onclick="switchTab('issue', this)">⚠️ 이슈 관리</button>
+  </div>
 
   <div id="dashboard-wrap">
 
@@ -354,6 +378,7 @@
   <div id="issue-banner" id="issue-banner"></div>
 
   <!-- 사용자 필터 -->
+  <div id="tab-main" class="tab-content active">
   <div class="filter-bar">
     <span class="filter-label">사용자</span>
     <button class="chip active" data-user="all" onclick="setUser(this)">전체</button>
@@ -411,31 +436,7 @@
       </div>
     </div>
 
-    <!-- 가격 변동 -->
-    <div id="sec-price" style="scroll-margin-top:110px;"></div>
-    <div class="section-title">💰 가격 변동 감지</div>
-    <div class="table-wrap">
-      <div class="table-header">
-        <span class="table-title">가격 변동 제품</span>
-        <span class="table-count" id="price-change-count"></span>
-      </div>
-      <div id="price-change-wrap"><div class="loading">로딩 중...</div></div>
-    </div>
-
-    <!-- 뱃징검수 -->
-    <div id="sec-badge" style="scroll-margin-top:110px;"></div>
-    <div class="section-title">🏷 뱃징검수 현황</div>
-    <div class="cards" id="badge-cards" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));"></div>
-    <div class="table-wrap" style="margin-top:10px;">
-      <div class="table-header">
-        <span class="table-title">뱃징검수 내역</span>
-        <span class="table-count" id="badge-count"></span>
-      </div>
-      <div id="badge-table-wrap"><div class="loading">로딩 중...</div></div>
-      <div class="pagination" id="badge-pagination"></div>
-    </div>
-
-    <!-- 이슈 -->
+    <!-- 이슈 제품 -->
     <div id="sec-issue" style="scroll-margin-top:110px;"></div>
     <div class="section-title">⚠️ 이슈 제품</div>
     <div class="cards cards-3" id="issue-cards"></div>
@@ -448,49 +449,106 @@
       <div id="issue-table-wrap"><div class="loading">로딩 중...</div></div>
     </div>
 
-    <!-- 검수 내역 -->
-    <div id="sec-inspect" style="scroll-margin-top:110px;"></div>
-    <div class="section-title">📋 최근 검수 내역</div>
+    <!-- 가격 변동 -->
+    <div id="sec-price" style="scroll-margin-top:110px;"></div>
+    <div class="section-title">💰 가격 변동 감지</div>
     <div class="table-wrap">
       <div class="table-header">
-        <span class="table-title">검수 결과</span>
+        <span class="table-title">가격 변동 제품</span>
+        <span class="table-count" id="price-change-count"></span>
+      </div>
+      <div id="price-change-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="price-pagination"></div>
+    </div>
+
+    <!-- 뱃징검수 -->
+    <div id="sec-badge" style="scroll-margin-top:110px;"></div>
+    <div class="section-title">🏷 뱃징검수</div>
+    <div class="cards" id="badge-cards" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));"></div>
+    <div class="table-wrap" style="margin-top:10px;">
+      <div class="table-header">
+        <span class="table-title">뱃징검수 내역</span>
         <div style="display:flex;gap:8px;align-items:center;">
-          <span class="table-count" id="inspect-count"></span>
-          <input class="search-input" id="search-input" placeholder="스타일번호 / 제품명" oninput="resetInspectPage()">
+          <span class="table-count" id="badge-count"></span>
+          <button class="btn-reset-filter" onclick="downloadBadgeExcel()" style="background:var(--green);color:#fff;border-color:var(--green);font-weight:800;">📥 엑셀</button>
         </div>
       </div>
       <div class="filter-row">
-        <select class="filter-select" id="f-mode" onchange="resetInspectPage()">
-          <option value="">모드 전체</option>
-          <option value="LIVE">LIVE</option>
-          <option value="STEALTH">STEALTH</option>
-          <option value="뱃징">뱃징</option>
-        </select>
-        <select class="filter-select" id="f-status" onchange="resetInspectPage()">
-          <option value="">상태 전체</option>
-          <option value="done">완료</option>
-          <option value="mismatch">불일치</option>
-          <option value="timeout">타임아웃</option>
-          <option value="snkrs">SNKRS</option>
-        </select>
-        <select class="filter-select" id="f-kc" onchange="resetInspectPage()">
-          <option value="">KC 전체</option>
-          <option value="O">O</option>
-          <option value="△">△</option>
-          <option value="-">-</option>
-        </select>
-        <select class="filter-select" id="f-badge" onchange="resetInspectPage()">
+        <select class="filter-select" id="f-badge-type" onchange="badgePage=1;renderBadgeSection()">
           <option value="">뱃징 전체</option>
           <option value="신제품">신제품</option>
           <option value="베스트셀러">베스트셀러</option>
           <option value="품절">품절</option>
           <option value="x">없음</option>
         </select>
-        <button class="btn-reset-filter" onclick="resetInspectFilters()">✕ 초기화</button>
-        <button class="btn-reset-filter" onclick="downloadExcel()" style="margin-left:auto;background:var(--green);color:#fff;border-color:var(--green);font-weight:800;">📥 엑셀 다운로드</button>
+        <input class="search-input" id="badge-search" placeholder="스타일번호 / 제품명" oninput="badgePage=1;renderBadgeSection()">
+        <button class="btn-reset-filter" onclick="resetBadgeFilters()">✕ 초기화</button>
       </div>
-      <div id="inspect-table-wrap"><div class="loading">로딩 중...</div></div>
-      <div class="pagination" id="inspect-pagination"></div>
+      <div id="badge-table-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="badge-pagination"></div>
+    </div>
+
+    <!-- 라이브검수 -->
+    <div id="sec-live" style="scroll-margin-top:110px;"></div>
+    <div class="section-title">📡 라이브검수</div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">라이브검수 내역 (LIVE)</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="table-count" id="live-count"></span>
+          <button class="btn-reset-filter" onclick="downloadModeExcel('LIVE')" style="background:var(--green);color:#fff;border-color:var(--green);font-weight:800;">📥 엑셀</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <select class="filter-select" id="f-live-status" onchange="livePage=1;renderLiveTable()">
+          <option value="">상태 전체</option>
+          <option value="done">완료</option>
+          <option value="mismatch">불일치</option>
+          <option value="timeout">타임아웃</option>
+          <option value="snkrs">SNKRS</option>
+        </select>
+        <select class="filter-select" id="f-live-kc" onchange="livePage=1;renderLiveTable()">
+          <option value="">KC 전체</option>
+          <option value="O">O</option>
+          <option value="△">△</option>
+          <option value="-">-</option>
+        </select>
+        <select class="filter-select" id="f-live-coupon" onchange="livePage=1;renderLiveTable()">
+          <option value="">쿠폰불가 전체</option>
+          <option value="O">쿠폰불가</option>
+          <option value="-">해당없음</option>
+        </select>
+        <input class="search-input" id="live-search" placeholder="스타일번호 / 제품명" oninput="livePage=1;renderLiveTable()">
+        <button class="btn-reset-filter" onclick="resetLiveFilters()">✕ 초기화</button>
+      </div>
+      <div id="live-table-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="live-pagination"></div>
+    </div>
+
+    <!-- 스텔스검수 -->
+    <div id="sec-stealth" style="scroll-margin-top:110px;"></div>
+    <div class="section-title">🕵 스텔스검수</div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">스텔스검수 내역 (STEALTH)</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="table-count" id="stealth-count"></span>
+          <button class="btn-reset-filter" onclick="downloadModeExcel('STEALTH')" style="background:var(--green);color:#fff;border-color:var(--green);font-weight:800;">📥 엑셀</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <select class="filter-select" id="f-stealth-status" onchange="stealthPage=1;renderStealthTable()">
+          <option value="">상태 전체</option>
+          <option value="done">완료</option>
+          <option value="mismatch">불일치</option>
+          <option value="timeout">타임아웃</option>
+          <option value="snkrs">SNKRS</option>
+        </select>
+        <input class="search-input" id="stealth-search" placeholder="스타일번호 / 제품명" oninput="stealthPage=1;renderStealthTable()">
+        <button class="btn-reset-filter" onclick="resetStealthFilters()">✕ 초기화</button>
+      </div>
+      <div id="stealth-table-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="stealth-pagination"></div>
     </div>
 
 
@@ -499,6 +557,13 @@
 
     <div style="height:40px;"></div>
   </main>
+  </div><!-- /tab-main -->
+
+  <!-- 이슈 관리 탭 -->
+  <div id="tab-issue" class="tab-content">
+    <div id="issue-mgmt-wrap" style="max-width:1440px;margin:0 auto;padding:24px 28px;"></div>
+  </div>
+
   </div><!-- /dashboard-wrap -->
 </div>
 
@@ -527,6 +592,345 @@ let inspectPage = 1;
 let autoRefreshTimer = null;
 let lastCount = 0;
 
+// ── 탭 전환 ─────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'issue') renderIssueMgmt();
+}
+
+// ── 이슈 관리 탭 ─────────────────────────────────────────────
+let allResolvedCache = [];
+
+async function renderIssueMgmt() {
+  const wrap = document.getElementById('issue-mgmt-wrap');
+  wrap.innerHTML = '<div class="loading" style="padding:32px;">로딩 중...</div>';
+
+  // 처리완료 내역 전체 조회 (resolved=true)
+  try {
+    allResolvedCache = await supabaseFetch('inspections',
+      'order=resolved_at.desc&resolved=eq.true');
+  } catch(e) {
+    allResolvedCache = allInspections.filter(r => r.resolved);
+  }
+
+  const unresolved = allUnresolved; // 미처리 이슈 (이미 로드됨)
+  const resolved   = allResolvedCache;
+
+  wrap.innerHTML = `
+    <!-- 요약 카드 -->
+    <div class="section-title" style="margin-top:0;">⚠️ 이슈 관리</div>
+    <div class="cards cards-3" style="margin-bottom:20px;">
+      <div class="card red">
+        <div class="card-label">미처리 이슈</div>
+        <div class="card-value">${unresolved.length}</div>
+        <div class="sum-sub">전체 기간 기준</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">처리완료</div>
+        <div class="card-value">${resolved.length}</div>
+        <div class="sum-sub">누적 전체</div>
+      </div>
+      <div class="card blue">
+        <div class="card-label">처리율</div>
+        <div class="card-value" style="font-size:22px;">${
+          unresolved.length + resolved.length > 0
+          ? Math.round(resolved.length / (unresolved.length + resolved.length) * 100) + '%'
+          : '-'
+        }</div>
+        <div class="sum-sub">전체 이슈 중</div>
+      </div>
+    </div>
+
+    <!-- 미처리 이슈 -->
+    <div class="section-title">🔴 미처리 이슈 (${unresolved.length}건)</div>
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="filter-row" style="display:flex;gap:6px;padding:8px 18px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);">
+        <input placeholder="스타일번호 검색" id="im-search" oninput="filterIssueMgmtTable()"
+          style="padding:5px 10px;border:1px solid var(--gray-300);font-size:11px;outline:none;width:160px;">
+        <select id="im-type" onchange="filterIssueMgmtTable()"
+          style="padding:4px 8px;border:1.5px solid var(--gray-300);font-size:11px;background:var(--white);">
+          <option value="">유형 전체</option>
+          <option value="KC△">KC△</option>
+          <option value="검색불일치">검색불일치</option>
+          <option value="타임아웃">타임아웃</option>
+          <option value="검색없음">검색없음</option>
+          <option value="중복사이즈">중복사이즈</option>
+          <option value="SNKRS">SNKRS</option>
+        </select>
+        <button onclick="bulkResolveAll()" style="margin-left:auto;padding:4px 14px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;border-radius:2px;">✅ 전체 일괄처리</button>
+      </div>
+      <div id="im-unresolved-wrap"><div class="empty">미처리 이슈가 없습니다 ✅</div></div>
+      <div class="pagination" id="im-unresolved-pagination"></div>
+    </div>
+
+    <!-- 처리완료 내역 -->
+    <div class="section-title">✅ 처리완료 내역 (${resolved.length}건)</div>
+    <div class="table-wrap">
+      <div class="filter-row" style="display:flex;gap:6px;align-items:center;padding:8px 18px;background:var(--gray-50);border-bottom:1px solid var(--gray-100);flex-wrap:wrap;">
+        <span style="font-size:10px;font-weight:700;color:var(--gray-500);letter-spacing:1px;">기간</span>
+        <button class="chip active orange" data-rdays="0" onclick="setResolvedDate(this)">전체</button>
+        <button class="chip" data-rdays="7" onclick="setResolvedDate(this)">7일</button>
+        <button class="chip" data-rdays="30" onclick="setResolvedDate(this)">30일</button>
+        <button class="chip" data-rdays="-1" onclick="setResolvedDate(this)">직접입력</button>
+        <div id="resolved-date-wrap" style="display:none;align-items:center;gap:4px;">
+          <input type="date" id="resolved-from" style="padding:3px 6px;border:1.5px solid var(--gray-300);font-size:11px;outline:none;" onchange="applyResolvedDate()">
+          <span style="font-size:11px;color:var(--gray-500);">~</span>
+          <input type="date" id="resolved-to" style="padding:3px 6px;border:1.5px solid var(--gray-300);font-size:11px;outline:none;" onchange="applyResolvedDate()">
+        </div>
+        <input placeholder="처리자 / 스타일번호 검색" id="resolved-search" oninput="filterResolvedTable()"
+          style="margin-left:auto;padding:5px 10px;border:1px solid var(--gray-300);font-size:11px;outline:none;width:180px;">
+      </div>
+      <div id="im-resolved-wrap"><div class="loading">로딩 중...</div></div>
+      <div class="pagination" id="im-resolved-pagination"></div>
+    </div>
+  `;
+
+  _imUnresolvedCache = [...unresolved];
+  _imResolvedPage   = 1;
+  filterIssueMgmtTable();
+  renderResolvedTable();
+}
+
+let _imUnresolvedCache = [];
+let _imUnresolvedFiltered = [];
+let _imUnresolvedPage  = 1;
+let _imResolvedPage    = 1;
+let _imResolvedDays    = 0;
+let _imResolvedFrom    = '';
+let _imResolvedTo      = '';
+
+function filterIssueMgmtTable() {
+  const kw   = (document.getElementById('im-search')?.value || '').toUpperCase();
+  const type = document.getElementById('im-type')?.value || '';
+  let rows = _imUnresolvedCache;
+  if (kw)   rows = rows.filter(r => (r.input_style_num||'').toUpperCase().includes(kw) || (r.product_name||'').includes(kw));
+  if (type) rows = rows.filter(r => getIssueTypes(r).some(t => t.label === type));
+  _imUnresolvedFiltered = rows;
+  _imUnresolvedPage = 1;
+  renderUnresolvedTable();
+}
+
+function renderUnresolvedTable() {
+  const rows  = _imUnresolvedFiltered;
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageRows   = rows.slice((_imUnresolvedPage-1)*PAGE_SIZE, _imUnresolvedPage*PAGE_SIZE);
+  const wrap = document.getElementById('im-unresolved-wrap');
+  if (!wrap) return;
+
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty">미처리 이슈가 없습니다 ✅</div>';
+    document.getElementById('im-unresolved-pagination').innerHTML = '';
+    return;
+  }
+
+  wrap.innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr>
+      <th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+      <th>이슈유형</th><th></th>
+    </tr></thead>
+    <tbody>${pageRows.map(r => {
+      const tags = getIssueTypes(r).map(t => `<span class="badge ${t.cls}">${t.label}</span>`).join(' ');
+      return `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+        <td>${fmtDate(r.created_at)}</td>
+        <td>${r.user_name||''}</td>
+        <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+        <td>${r.product_name||''}</td>
+        <td>${tags}</td>
+        <td onclick="event.stopPropagation()">
+          <button onclick="resolveIssue('${r.id}')" style="padding:3px 10px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;">처리완료</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+
+  // 페이지네이션
+  const pag = document.getElementById('im-unresolved-pagination');
+  if (!pag) return;
+  if (totalPages <= 1) { pag.innerHTML = `<span class="page-info">총 ${total}건</span>`; return; }
+  let btns = `<button class="page-btn" onclick="goImUnresolved(${_imUnresolvedPage-1})" ${_imUnresolvedPage===1?'disabled':''}>‹</button>`;
+  let s = Math.max(1, _imUnresolvedPage-3), e = Math.min(totalPages, s+6);
+  if (e-s<6) s = Math.max(1,e-6);
+  if (s>1) btns += `<button class="page-btn" onclick="goImUnresolved(1)">1</button><span class="page-info">…</span>`;
+  for (let i=s;i<=e;i++) btns += `<button class="page-btn ${i===_imUnresolvedPage?'active':''}" onclick="goImUnresolved(${i})">${i}</button>`;
+  if (e<totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="goImUnresolved(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="page-btn" onclick="goImUnresolved(${_imUnresolvedPage+1})" ${_imUnresolvedPage===totalPages?'disabled':''}>›</button>`;
+  btns += `<span class="page-info">${(_imUnresolvedPage-1)*PAGE_SIZE+1}–${Math.min(_imUnresolvedPage*PAGE_SIZE,total)} / ${total}</span>`;
+  pag.innerHTML = btns;
+}
+
+function goImUnresolved(p) {
+  _imUnresolvedPage = Math.max(1, Math.min(p, Math.ceil(_imUnresolvedFiltered.length/PAGE_SIZE)));
+  renderUnresolvedTable();
+  document.getElementById('im-unresolved-wrap')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function setResolvedDate(el) {
+  document.querySelectorAll('[data-rdays]').forEach(b => b.classList.remove('active','orange'));
+  el.classList.add('active','orange');
+  _imResolvedDays = parseInt(el.dataset.rdays);
+  const wrap = document.getElementById('resolved-date-wrap');
+  if (_imResolvedDays === -1) {
+    wrap.style.display = 'flex';
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('resolved-from').value = today;
+    document.getElementById('resolved-to').value   = today;
+    _imResolvedFrom = today; _imResolvedTo = today;
+  } else {
+    wrap.style.display = 'none';
+    _imResolvedFrom = ''; _imResolvedTo = '';
+  }
+  _imResolvedPage = 1;
+  renderResolvedTable();
+}
+
+function applyResolvedDate() {
+  _imResolvedFrom = document.getElementById('resolved-from').value;
+  _imResolvedTo   = document.getElementById('resolved-to').value;
+  _imResolvedPage = 1;
+  renderResolvedTable();
+}
+
+function filterResolvedTable() {
+  _imResolvedPage = 1;
+  renderResolvedTable();
+}
+
+function getResolvedFiltered() {
+  let rows = allResolvedCache;
+  // 기간 필터
+  if (_imResolvedDays > 0) {
+    const fromDate = new Date(Date.now() - (_imResolvedDays-1)*24*60*60*1000)
+      .toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'});
+    const today = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'});
+    rows = rows.filter(r => {
+      const d = toKSTDate(r.resolved_at);
+      return d >= fromDate && d <= today;
+    });
+  } else if (_imResolvedDays === -1 && _imResolvedFrom) {
+    rows = rows.filter(r => {
+      const d = toKSTDate(r.resolved_at);
+      return d >= _imResolvedFrom && (!_imResolvedTo || d <= _imResolvedTo);
+    });
+  }
+  // 검색 필터
+  const kw = (document.getElementById('resolved-search')?.value || '').toUpperCase();
+  if (kw) rows = rows.filter(r =>
+    (r.input_style_num||'').toUpperCase().includes(kw) ||
+    (r.resolved_by||'').toUpperCase().includes(kw)
+  );
+  return rows;
+}
+
+function renderResolvedTable() {
+  const rows  = getResolvedFiltered();
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageRows   = rows.slice((_imResolvedPage-1)*PAGE_SIZE, _imResolvedPage*PAGE_SIZE);
+  const wrap = document.getElementById('im-resolved-wrap');
+  if (!wrap) return;
+
+  if (!rows.length) { wrap.innerHTML = '<div class="empty">처리완료 내역이 없습니다</div>'; return; }
+
+  wrap.innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr>
+      <th>처리일시</th><th>처리자</th><th>스타일번호</th><th>제품명</th>
+      <th>이슈유형</th><th>처리내용</th>
+    </tr></thead>
+    <tbody>${pageRows.map(r => {
+      const tags = getIssueTypes(r).map(t => `<span class="badge ${t.cls}">${t.label}</span>`).join(' ');
+      return `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+        <td>${fmtDate(r.resolved_at)}</td>
+        <td style="font-weight:700;">${r.resolved_by||''}</td>
+        <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+        <td>${r.product_name||''}</td>
+        <td>${tags}</td>
+        <td style="font-size:11px;color:#666;">${r.resolved_comment||''}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+
+  // 페이지네이션
+  const pag = document.getElementById('im-resolved-pagination');
+  if (!pag) return;
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  let btns = `<button class="page-btn" onclick="goImResolved(${_imResolvedPage-1})" ${_imResolvedPage===1?'disabled':''}>‹</button>`;
+  let s = Math.max(1, _imResolvedPage-3), e = Math.min(totalPages, s+6);
+  if (e-s<6) s = Math.max(1,e-6);
+  if (s>1) btns += `<button class="page-btn" onclick="goImResolved(1)">1</button><span class="page-info">…</span>`;
+  for (let i=s;i<=e;i++) btns += `<button class="page-btn ${i===_imResolvedPage?'active':''}" onclick="goImResolved(${i})">${i}</button>`;
+  if (e<totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="goImResolved(${totalPages})">${totalPages}</button>`;
+  btns += `<button class="page-btn" onclick="goImResolved(${_imResolvedPage+1})" ${_imResolvedPage===totalPages?'disabled':''}>›</button>`;
+  btns += `<span class="page-info">${(_imResolvedPage-1)*PAGE_SIZE+1}–${Math.min(_imResolvedPage*PAGE_SIZE,total)} / ${total}</span>`;
+  pag.innerHTML = btns;
+}
+
+function goImResolved(p) {
+  _imResolvedPage = Math.max(1, Math.min(p, Math.ceil(allResolvedCache.length/PAGE_SIZE)));
+  renderResolvedTable();
+}
+
+async function bulkResolveAll() {
+  const rows = _imUnresolvedCache;
+  if (!rows.length) { alert('미처리 이슈가 없습니다.'); return; }
+  // 기존 bulkResolveIssues 모달 재활용
+  // 체크박스 없이 전체 처리
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;width:400px;max-width:95vw;padding:28px;">
+      <div style="font-size:14px;font-weight:800;margin-bottom:6px;">✅ 전체 일괄 처리완료</div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:20px;">미처리 이슈 전체 ${rows.length}건을 처리합니다</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">처리 담당자 *</label>
+        <input id="ba-name" type="text" placeholder="이름 입력" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;"/>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:11px;font-weight:700;color:#888;display:block;margin-bottom:4px;">처리 내용 *</label>
+        <textarea id="ba-comment" placeholder="처리 내용을 입력하세요" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;height:80px;resize:vertical;font-family:sans-serif;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="ba-cancel" style="padding:9px 16px;background:#fff;border:1.5px solid #ccc;font-size:12px;font-weight:700;cursor:pointer;">취소</button>
+        <button id="ba-confirm" style="padding:9px 16px;background:var(--green);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">일괄 처리완료</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ba-name').focus();
+  document.getElementById('ba-cancel').onclick = () => document.body.removeChild(overlay);
+  overlay.onclick = e => { if(e.target===overlay) document.body.removeChild(overlay); };
+  document.getElementById('ba-confirm').onclick = async () => {
+    const name    = document.getElementById('ba-name').value.trim();
+    const comment = document.getElementById('ba-comment').value.trim();
+    if (!name)    { document.getElementById('ba-name').style.borderColor='#E4002B'; return; }
+    if (!comment) { document.getElementById('ba-comment').style.borderColor='#E4002B'; return; }
+    const btn = document.getElementById('ba-confirm');
+    btn.textContent='처리 중...'; btn.disabled=true;
+    const kst = new Date(Date.now() + 9*60*60*1000);
+    let ok = 0;
+    for (const r of rows) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/inspections?id=eq.${r.id}`, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Prefer':'return=minimal'},
+          body:JSON.stringify({resolved:true,resolved_by:name,resolved_comment:comment,resolved_at:kst.toISOString().replace('Z','+09:00')})
+        });
+        if (res.ok) {
+          r.resolved=true; r.resolved_by=name; r.resolved_comment=comment; r.resolved_at=kst.toISOString();
+          allResolvedCache.unshift(r);
+          ok++;
+        }
+      } catch(e) {}
+    }
+    allUnresolved = allUnresolved.filter(r => !rows.find(x=>x.id===r.id));
+    _imUnresolvedCache = [...allUnresolved];
+    document.body.removeChild(overlay);
+    renderIssueMgmt();
+  };
+}
+
 // ── 사이드 네비게이션 ────────────────────────────────────────
 function scrollToSec(id, el) {
   event.preventDefault();
@@ -539,7 +943,7 @@ function scrollToSec(id, el) {
 
 // 스크롤 시 현재 섹션 하이라이트
 function updateNavOnScroll() {
-  const secIds = ['sec-summary','sec-user','sec-stats','sec-price','sec-badge','sec-issue','sec-inspect'];
+  const secIds = ['sec-summary','sec-user','sec-stats','sec-issue','sec-price','sec-badge','sec-live','sec-stealth'];
   const offset = 120;
   let current = secIds[0];
   for (const id of secIds) {
@@ -586,19 +990,36 @@ updateTime(); setInterval(updateTime, 1000);
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   autoRefreshTimer = setInterval(async () => {
-    const dp = getDateParams();
-    const [insp, badge] = await Promise.all([
-      supabaseFetch('inspections', dp),
-      supabaseFetch('badge_inspections', dp)
-    ]);
-    const newCount = insp.length + badge.length;
-    if (newCount > lastCount && lastCount > 0) {
-      showNewBanner(newCount - lastCount);
-    } else {
-      allInspections = insp; allBadge = badge;
-      lastCount = newCount;
-      renderAll();
-    }
+    try {
+      const dp = getDateParams();
+      const [insp, badge] = await Promise.all([
+        supabaseFetch('inspections', dp),
+        supabaseFetch('badge_inspections', dp)
+      ]);
+      const newCount = insp.length + badge.length;
+      if (newCount > lastCount && lastCount > 0) {
+        showNewBanner(newCount - lastCount);
+      } else {
+        // loadAll과 동일한 분리 처리
+        const badgeFromInsp = insp.filter(r => r.inspect_mode === '뱃징');
+        allInspections = insp.filter(r => r.inspect_mode !== '뱃징');
+        const badgeIds   = new Set(badge.map(r => r.id));
+        const extraBadge = badgeFromInsp.map(r => ({...r, style_num: r.input_style_num||r.page_style_num||''})).filter(r => !badgeIds.has(r.id));
+        allBadge = [...badge, ...extraBadge];
+        lastCount = newCount;
+
+        // 미처리 이슈 갱신
+        try {
+          const unresolved = await supabaseFetch('inspections',
+            'order=created_at.desc&or=(resolved.is.false,resolved.is.null)');
+          allUnresolved = unresolved.filter(isIssueRow);
+        } catch(e) {
+          allUnresolved = allInspections.filter(isIssueRow);
+        }
+
+        renderAll();
+      }
+    } catch(e) { console.warn('자동 새로고침 오류:', e); }
   }, 30000);
 }
 
@@ -677,8 +1098,16 @@ async function loadAll() {
       supabaseFetch('inspections', dateParams),
       supabaseFetch('badge_inspections', dateParams)
     ]);
-    allInspections = insp;
-    allBadge       = badge;
+    // 구버전 프로그램이 inspections에 저장한 뱃징 항목 분리
+    const badgeFromInsp = insp.filter(r => r.inspect_mode === '뱃징');
+    allInspections = insp.filter(r => r.inspect_mode !== '뱃징');
+    // badge_inspections + inspections에 잘못 저장된 뱃징 데이터 합산 (중복 제거)
+    const badgeIds = new Set(badge.map(r => r.id));
+    const extraBadge = badgeFromInsp.map(r => ({
+      ...r,
+      style_num: r.input_style_num || r.page_style_num || ''
+    })).filter(r => !badgeIds.has(r.id));
+    allBadge = [...badge, ...extraBadge];
     lastCount      = insp.length + badge.length;
 
     // 2. 미처리 이슈 별도 조회 (기간 무관)
@@ -786,30 +1215,38 @@ function applyDateRange() {
 function renderAll() {
   renderSummary();
   renderUnresolved();
+  renderIssueSection();
   renderPriceChanges();
   renderBadgeSection();
-  renderIssueSection();
-  renderInspectTable();
+  renderLiveTable();
+  renderStealthTable();
   renderUserStats();
   renderCharts();
 }
 
 // ── 요약 카드 ────────────────────────────────────────────────
 function renderSummary() {
-  const rows  = applyFilters(allInspections);
-  const badge = applyFilters(allBadge);
+  const rows  = applyFilters(allInspections); // LIVE + STEALTH
+  const badge = applyFilters(allBadge);       // 뱃징
+  const total = rows.length + badge.length;   // 전체 합산
   const done  = rows.filter(r => r.status === 'done' || r.status === 'snkrs').length;
-  const issues = rows.filter(isIssueRow).length;
-  const resolved = rows.filter(r => r.resolved === true);
-  const lastRow = rows[0];
-  const lastTime = lastRow?.created_at ? fmtDate(lastRow.created_at) : '-';
-  const lastUser = lastRow?.user_name || '';
+
+  // 이슈: 이슈섹션과 동일하게 allUnresolved 기준 (전체기간, 사용자필터만 적용)
+  const issueRows    = filterByUser(allUnresolved);
+  const issues       = issueRows.length;
+  const resolvedRows = issueRows.filter(r => r.resolved === true);
+
+  // 마지막 검수: LIVE/STEALTH/뱃징 중 가장 최신
+  const allLatest = [...rows, ...badge].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  const lastRow   = allLatest[0];
+  const lastTime  = lastRow?.created_at ? fmtDate(lastRow.created_at) : '-';
+  const lastUser  = lastRow?.user_name || '';
 
   document.getElementById('summary-cards').innerHTML = `
     <div class="sum-card orange">
       <div class="sum-label">총 검수</div>
-      <div class="sum-value">${rows.length}</div>
-      <div class="sum-sub">뱃징검수 ${badge.length}건 포함</div>
+      <div class="sum-value">${total}</div>
+      <div class="sum-sub">라이브 ${rows.filter(r=>!['STEALTH','background'].includes(r.inspect_mode||'')).length} · 스텔스 ${rows.filter(r=>['STEALTH','background'].includes(r.inspect_mode||'')).length} · 뱃징 ${badge.length}</div>
     </div>
     <div class="sum-card green">
       <div class="sum-label">완료</div>
@@ -819,12 +1256,12 @@ function renderSummary() {
     <div class="sum-card red">
       <div class="sum-label">이슈</div>
       <div class="sum-value">${issues}</div>
-      <div class="sum-sub">KC△ + 불일치</div>
+      <div class="sum-sub">미처리 전체 기간 기준</div>
     </div>
 
     <div class="sum-card green">
       <div class="sum-label">이슈 처리</div>
-      <div class="sum-value">${resolved.length}</div>
+      <div class="sum-value">${filterByUser(allUnresolved.filter(r=>r.resolved)).length}</div>
       <div class="sum-sub">전체 이슈 ${issues}건 중</div>
     </div>
     <div class="sum-card amber">
@@ -850,6 +1287,169 @@ function isIssueRow(r) {
   const hasNotes = r.notes && r.notes.trim() !== '';
   const hasKcIssue = r.kc_certification === '△';
   return notDone || hasNotes || hasKcIssue;
+}
+
+// ── 전역 페이지 변수 ──────────────────────────────────────────
+let livePage    = 1;
+let stealthPage = 1;
+let pricePage   = 1;
+let _priceChangesCache = [];
+
+// ── 라이브검수 ─────────────────────────────────────────────
+function getLiveRows() {
+  const kw     = (document.getElementById('live-search')?.value||'').toUpperCase();
+  const status = document.getElementById('f-live-status')?.value||'';
+  const kc     = document.getElementById('f-live-kc')?.value||'';
+  const coupon = document.getElementById('f-live-coupon')?.value||'';
+  return filterByUser(allInspections)
+    // LIVE: 'LIVE', 'visible', null/undefined/'' (구버전 또는 미설정)
+    .filter(r => { const m = r.inspect_mode||''; return m === 'LIVE' || m === 'visible' || m === ''; })
+    .filter(r => !status || (r.status||'').includes(status))
+    .filter(r => !kc     || r.kc_certification === kc)
+    .filter(r => !coupon || r.coupon_unavailable === coupon)
+    .filter(r => !kw     || (r.input_style_num||'').toUpperCase().includes(kw) || (r.product_name||'').includes(kw));
+}
+
+function renderLiveTable() {
+  const rows = getLiveRows();
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if (livePage > totalPages) livePage = 1;
+  const pageRows = rows.slice((livePage-1)*PAGE_SIZE, livePage*PAGE_SIZE);
+  document.getElementById('live-count').textContent = `${total}건 · ${livePage}/${totalPages}페이지`;
+  if (!rows.length) {
+    document.getElementById('live-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>';
+    document.getElementById('live-pagination').innerHTML = '';
+    return;
+  }
+  document.getElementById('live-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+    <th>카테고리</th><th>뱃징</th><th>판매가격</th><th>할인율</th>
+    <th>KC인증</th><th>쿠폰불가</th><th>제조국</th><th>상태</th></tr></thead>
+    <tbody>${pageRows.map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
+      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+      <td>${r.product_name||''}</td><td>${r.category||''}</td>
+      <td>${badgeChip(r.badge)}</td>
+      <td style="text-align:right;">${r.sale_price ? r.sale_price+' 원' : '-'}</td>
+      <td style="text-align:center;">${(r.discount_rate||'-').replace(' 할인','')}</td>
+      <td style="text-align:center;">${kcChip(r.kc_certification)}</td>
+      <td style="text-align:center;">${r.coupon_unavailable||'-'}</td>
+      <td>${r.manufacture_country||''}</td>
+      <td>${statusChip(r.status)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+  renderPagination('live-pagination', livePage, totalPages, 'livePage', 'renderLiveTable', 'live-table-wrap');
+}
+
+function resetLiveFilters() {
+  ['f-live-status','f-live-kc','f-live-coupon'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('live-search').value = '';
+  livePage = 1; renderLiveTable();
+}
+
+// ── 스텔스검수 ─────────────────────────────────────────────
+function getStealthRows() {
+  const kw     = (document.getElementById('stealth-search')?.value||'').toUpperCase();
+  const status = document.getElementById('f-stealth-status')?.value||'';
+  return filterByUser(allInspections)
+    // STEALTH: 'STEALTH', 'background' (구버전)
+    .filter(r => { const m = r.inspect_mode||''; return m === 'STEALTH' || m === 'background'; })
+    .filter(r => !status || (r.status||'').includes(status))
+    .filter(r => !kw     || (r.input_style_num||'').toUpperCase().includes(kw) || (r.product_name||'').includes(kw));
+}
+
+function renderStealthTable() {
+  const rows = getStealthRows();
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if (stealthPage > totalPages) stealthPage = 1;
+  const pageRows = rows.slice((stealthPage-1)*PAGE_SIZE, stealthPage*PAGE_SIZE);
+  document.getElementById('stealth-count').textContent = `${total}건 · ${stealthPage}/${totalPages}페이지`;
+  if (!rows.length) {
+    document.getElementById('stealth-table-wrap').innerHTML = '<div class="empty">데이터가 없습니다</div>';
+    document.getElementById('stealth-pagination').innerHTML = '';
+    return;
+  }
+  document.getElementById('stealth-table-wrap').innerHTML = `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
+    <th>카테고리</th><th>뱃징</th><th>판매가격</th><th>할인율</th><th>상태</th></tr></thead>
+    <tbody>${pageRows.map(r => `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <td>${fmtDate(r.created_at)}</td><td>${r.user_name||''}</td>
+      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+      <td>${r.product_name||''}</td><td>${r.category||''}</td>
+      <td>${badgeChip(r.badge)}</td>
+      <td style="text-align:right;">${r.sale_price ? r.sale_price+' 원' : '-'}</td>
+      <td style="text-align:center;">${(r.discount_rate||'-').replace(' 할인','')}</td>
+      <td>${statusChip(r.status)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+  renderPagination('stealth-pagination', stealthPage, totalPages, 'stealthPage', 'renderStealthTable', 'stealth-table-wrap');
+}
+
+function resetStealthFilters() {
+  ['f-stealth-status'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('stealth-search').value = '';
+  stealthPage = 1; renderStealthTable();
+}
+
+// ── 공통 페이지네이션 렌더러 ──────────────────────────────────
+function renderPagination(pagId, curPage, totalPages, pageVar, renderFn, wrapId) {
+  const pag = document.getElementById(pagId);
+  if (!pag) return;
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  let btns = `<button class="page-btn" onclick="${pageVar}=Math.max(1,${curPage}-1);${renderFn}()" ${curPage===1?'disabled':''}>‹</button>`;
+  let s = Math.max(1, curPage-3), e = Math.min(totalPages, s+6);
+  if (e-s<6) s = Math.max(1,e-6);
+  if (s>1) btns += `<button class="page-btn" onclick="${pageVar}=1;${renderFn}()">1</button><span class="page-info">…</span>`;
+  for (let i=s;i<=e;i++) btns += `<button class="page-btn ${i===curPage?'active':''}" onclick="${pageVar}=${i};${renderFn}()">${i}</button>`;
+  if (e<totalPages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="${pageVar}=${totalPages};${renderFn}()">${totalPages}</button>`;
+  btns += `<button class="page-btn" onclick="${pageVar}=Math.min(${totalPages},${curPage}+1);${renderFn}()" ${curPage===totalPages?'disabled':''}>›</button>`;
+  pag.innerHTML = btns;
+}
+
+// ── 뱃징검수 필터/엑셀 ─────────────────────────────────────
+function resetBadgeFilters() {
+  const bt = document.getElementById('f-badge-type'); if(bt) bt.value='';
+  const bs = document.getElementById('badge-search'); if(bs) bs.value='';
+  badgePage=1; renderBadgeSection();
+}
+
+function downloadBadgeExcel() {
+  const rows = _badgeRowsCache;
+  if (!rows.length) { alert('데이터가 없습니다.'); return; }
+  const headers = ['No','검수일시','사용자','스타일번호','제품명','뱃징','판매가격','할인율'];
+  const data = rows.map((r,i) => [i+1, fmtDate(r.created_at), r.user_name||'',
+    r.style_num||'', r.product_name||'', r.badge||'x', r.sale_price||'',
+    (r.discount_rate||'-').replace(' 할인','')]);
+  exportExcel(headers, data, 'DTC3_뱃징검수');
+}
+
+function downloadModeExcel(mode) {
+  const rows = mode === 'LIVE' ? getLiveRows() : getStealthRows();
+  if (!rows.length) { alert('데이터가 없습니다.'); return; }
+  const headers = ['No','검수일시','사용자','스타일번호','제품명','카테고리','뱃징','판매가격','할인율','KC인증','쿠폰불가','제조국','제조자/수입자','비고','상태'];
+  const data = rows.map((r,i) => [i+1, fmtDate(r.created_at), r.user_name||'', r.input_style_num||'',
+    r.product_name||'', r.category||'', r.badge||'x', r.sale_price||'',
+    (r.discount_rate||'-').replace(' 할인',''), r.kc_certification||'',
+    r.coupon_unavailable||'', r.manufacture_country||'', r.importer_manufacturer||'',
+    r.notes||'', r.status||'']);
+  exportExcel(headers, data, `DTC3_${mode}검수`);
+}
+
+function exportExcel(headers, data, filename) {
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let c=range.s.c;c<=range.e.c;c++) {
+    const addr = XLSX.utils.encode_cell({r:0,c});
+    if (!ws[addr]) continue;
+    ws[addr].s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{patternType:'solid',fgColor:{rgb:'111111'}},alignment:{horizontal:'center'}};
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '검수결과');
+  const now = new Date(); const kst = new Date(now.getTime()+9*60*60*1000);
+  const dateStr = kst.getUTCFullYear()+String(kst.getUTCMonth()+1).padStart(2,'0')+String(kst.getUTCDate()).padStart(2,'0');
+  XLSX.writeFile(wb, `${filename}_${dateStr}.xlsx`);
 }
 
 // ── 이슈 테이블 더보기 ───────────────────────────────────────
@@ -892,8 +1492,8 @@ function toggleUnresolvedPanel() {
 }
 
 function renderUnresolved() {
-  // 전체 데이터 기준 (필터 무관)
-  const rows = allInspections.filter(r => !r.resolved && isIssueRow(r));
+  // allUnresolved 기준 (전체기간, 이슈섹션과 동일)
+  const rows = filterByUser(allUnresolved);
 
   const banner  = document.getElementById('unresolved-banner');
   const totalEl = document.getElementById('unresolved-total');
@@ -1089,42 +1689,51 @@ function renderPriceChanges() {
   // 변동폭 큰 순으로 정렬
   changes.sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct));
 
+  _priceChangesCache = changes;
   document.getElementById('price-change-count').textContent = changes.length + '건';
+  pricePage = 1;
+  renderPriceTable();
+}
 
-  if (!changes.length) {
-    document.getElementById('price-change-wrap').innerHTML =
-      '<div class="empty">가격 변동 제품이 없습니다</div>';
+function renderPriceTable() {
+  const changes    = _priceChangesCache;
+  const total      = changes.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pricePage > totalPages) pricePage = 1;
+  const pageItems  = changes.slice((pricePage-1)*PAGE_SIZE, pricePage*PAGE_SIZE);
+
+  if (!total) {
+    document.getElementById('price-change-wrap').innerHTML = '<div class="empty">가격 변동 제품이 없습니다</div>';
+    document.getElementById('price-pagination').innerHTML  = '';
     return;
   }
 
   document.getElementById('price-change-wrap').innerHTML = `
-    <div style="overflow-x:auto;">
-    <table>
+    <div style="overflow-x:auto;"><table>
       <thead><tr>
         <th>스타일번호</th><th>제품명</th>
         <th>이전 가격</th><th>현재 가격</th><th>변동</th>
         <th>이전 검수</th><th>최근 검수</th>
       </tr></thead>
-      <tbody>
-        ${changes.map(c => `<tr>
-          <td style="font-family:monospace;font-weight:700;">
-            ${c.url ? `<a href="${c.url}" target="_blank" style="color:var(--blue);text-decoration:underline;">${c.styleNum}</a>` : c.styleNum}
-          </td>
-          <td>${c.productName}</td>
-          <td style="text-align:right;color:var(--gray-500);">${c.prevPrice.toLocaleString()}원</td>
-          <td style="text-align:right;font-weight:700;">${c.latestPrice.toLocaleString()}원</td>
-          <td style="text-align:center;">
-            ${c.diff < 0
-              ? `<span class="badge badge-red">▼ ${Math.abs(c.pct)}% (${Math.abs(c.diff).toLocaleString()}원↓)</span>`
-              : `<span class="badge badge-blue">▲ ${c.pct}% (${c.diff.toLocaleString()}원↑)</span>`
-            }
-          </td>
-          <td style="font-size:11px;color:var(--gray-500);">${fmtDate(c.prevDate)} · ${c.prevUser}</td>
-          <td style="font-size:11px;">${fmtDate(c.latestDate)} · ${c.latestUser}</td>
-        </tr>`).join('')}
+      <tbody>${pageItems.map(c => `<tr>
+        <td style="font-family:monospace;font-weight:700;">
+          ${c.url ? `<a href="${c.url}" target="_blank" style="color:var(--blue);text-decoration:underline;">${c.styleNum}</a>` : c.styleNum}
+        </td>
+        <td>${c.productName}</td>
+        <td style="text-align:right;color:var(--gray-500);">${c.prevPrice.toLocaleString()}원</td>
+        <td style="text-align:right;font-weight:700;">${c.latestPrice.toLocaleString()}원</td>
+        <td style="text-align:center;">
+          ${c.diff < 0
+            ? `<span class="badge badge-red">▼ ${Math.abs(c.pct)}% (${Math.abs(c.diff).toLocaleString()}원↓)</span>`
+            : `<span class="badge badge-blue">▲ ${c.pct}% (${c.diff.toLocaleString()}원↑)</span>`}
+        </td>
+        <td style="font-size:11px;color:var(--gray-500);">${fmtDate(c.prevDate)} · ${c.prevUser}</td>
+        <td style="font-size:11px;">${fmtDate(c.latestDate)} · ${c.latestUser}</td>
+      </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
+    </table></div>`;
+
+  renderPagination('price-pagination', pricePage, totalPages, 'pricePage', 'renderPriceTable', 'price-change-wrap');
 }
 
 // ── 뱃징검수 ───────────────────────────────────────────────────
@@ -1165,7 +1774,11 @@ function renderBadgeSection() {
 }
 
 function renderBadgeTable() {
-  const rows  = _badgeRowsCache;
+  const badgeType = document.getElementById('f-badge-type')?.value||'';
+  const badgeKw   = (document.getElementById('badge-search')?.value||'').toUpperCase();
+  let rows = _badgeRowsCache;
+  if (badgeType) rows = rows.filter(r => (r.badge||'x') === badgeType);
+  if (badgeKw)   rows = rows.filter(r => (r.style_num||'').toUpperCase().includes(badgeKw) || (r.product_name||'').includes(badgeKw));
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageRows   = rows.slice((badgePage-1)*PAGE_SIZE, badgePage*PAGE_SIZE);
@@ -1323,13 +1936,10 @@ function renderIssueSection() {
 }
 
 // ── 검수 내역 ─────────────────────────────────────────────────
-function resetInspectPage() { inspectPage = 1; renderInspectTable(); }
+function resetInspectPage() { livePage=1; stealthPage=1; renderLiveTable(); renderStealthTable(); }
 function resetInspectFilters() {
-  ['search-input','f-mode','f-status','f-kc','f-badge'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  resetInspectPage();
+  resetLiveFilters();
+  resetStealthFilters();
 }
 
 function getInspectFiltered() {
@@ -1551,7 +2161,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 // ── 엑셀 다운로드 ────────────────────────────────────────────
 function downloadExcel() {
-  const rows = getInspectFiltered();
+  const rows = [...getLiveRows(), ...getStealthRows()];
   if (!rows.length) { alert('다운로드할 데이터가 없습니다.'); return; }
 
   const headers = [
