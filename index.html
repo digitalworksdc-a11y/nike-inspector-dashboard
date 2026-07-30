@@ -285,6 +285,7 @@
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -326,9 +327,6 @@
     </a>
     <a class="nav-item" href="#sec-issue" onclick="scrollToSec('sec-issue',this)">
       <span class="nav-icon">⚠️</span>이슈 제품
-    </a>
-    <a class="nav-item" href="#sec-price" onclick="scrollToSec('sec-price',this)">
-      <span class="nav-icon">💰</span>가격 변동
     </a>
     <a class="nav-item" href="#sec-badge" onclick="scrollToSec('sec-badge',this)">
       <span class="nav-icon">🏷</span>뱃징검수
@@ -457,18 +455,6 @@
         <button class="btn-reset-filter" onclick="resetIssueFilters()">✕ 초기화</button>
       </div>
       <div id="issue-table-wrap"><div class="loading">로딩 중...</div></div>
-    </div>
-
-    <!-- 가격 변동 -->
-    <div id="sec-price" style="scroll-margin-top:110px;"></div>
-    <div class="section-title">💰 가격 변동 감지</div>
-    <div class="table-wrap">
-      <div class="table-header">
-        <span class="table-title">가격 변동 제품</span>
-        <span class="table-count" id="price-change-count"></span>
-      </div>
-      <div id="price-change-wrap"><div class="loading">로딩 중...</div></div>
-      <div class="pagination" id="price-pagination"></div>
     </div>
 
     <!-- 뱃징검수 -->
@@ -741,6 +727,181 @@ function buildTypeProgress(unresolved, resolved) {
   }).join('')}</div>`;
 }
 
+// ── 이슈 이메일 알림 ──────────────────────────────────────────
+const ISSUE_ALERT_EMAIL   = 'wangkoo@digitalworks.co.kr';
+const EMAIL_RECIPIENTS = [
+  { name: '정왕구', email: 'wangkoo@digitalworks.co.kr' },
+  { name: '공유미', email: 'ymgong@3ibank.com' },
+  { name: '김유하', email: 'yhkim2@digitalworks.co.kr' },
+  { name: '조민희', email: 'mhcho@digitalworks.co.kr' },
+  { name: '모예림', email: 'yrmo@digitalworks.co.kr' },
+];
+// ── EmailJS 설정 (emailjs.com 에서 발급) ─────────────────────
+const EMAILJS_PUBLIC_KEY  = 'PLQFCtLKw_xfnJqMt';
+const EMAILJS_SERVICE_ID  = 'service_ddxznv8';
+const EMAILJS_TEMPLATE_ID = 'template_zybic6y';
+// ─────────────────────────────────────────────────────────────
+if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY) emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+function sendIssueEmail() {
+  if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) {
+    alert('EmailJS 설정이 필요합니다.\nHTML 파일의 EMAILJS_PUBLIC_KEY / SERVICE_ID / TEMPLATE_ID 를 입력해주세요.');
+    return;
+  }
+
+  const allUnres     = filterByUser(allUnresolved);
+  const filtered     = (_imUnresolvedFiltered && _imUnresolvedFiltered.length) ? _imUnresolvedFiltered : allUnres;
+  const checkedEls   = [...document.querySelectorAll('#im-unresolved-wrap .issue-chk:checked')];
+  const checkedIds   = new Set(checkedEls.map(c => c.dataset.id));
+  const checkedItems = allUnres.filter(r => checkedIds.has(r.id));
+
+  // ── 모달 생성 ─────────────────────────────────────────────
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+
+  const modalBox = document.createElement('div');
+  modalBox.style.cssText = 'background:#fff;width:460px;max-width:95vw;padding:28px;';
+
+  // 제목
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:14px;font-weight:800;margin-bottom:18px;';
+  title.textContent = '📧 이메일 알림 전송';
+  modalBox.appendChild(title);
+
+  // 전송 대상 라디오
+  const scopeLabel = document.createElement('div');
+  scopeLabel.style.cssText = 'font-size:10px;font-weight:700;color:#888;letter-spacing:1px;margin-bottom:8px;';
+  scopeLabel.textContent = '전송 대상';
+  modalBox.appendChild(scopeLabel);
+
+  const scopeWrap = document.createElement('div');
+  scopeWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:18px;';
+  const mkRadio = (val, labelText, countText, checked) => {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid ' + (checked?'var(--orange)':'#ccc') + ';cursor:pointer;border-radius:3px;';
+    const inp = document.createElement('input');
+    inp.type = 'radio'; inp.name = 'em-scope'; inp.value = val;
+    if (checked) inp.checked = true;
+    const txt = document.createElement('span');
+    txt.style.fontSize = '12px';
+    txt.innerHTML = '<strong>' + labelText + '</strong> <span style="color:var(--gray-500);">' + countText + '</span>';
+    lbl.appendChild(inp); lbl.appendChild(txt);
+    inp.addEventListener('change', () => {
+      scopeWrap.querySelectorAll('label').forEach(l => l.style.borderColor = '#ccc');
+      if (inp.checked) lbl.style.borderColor = 'var(--orange)';
+    });
+    return lbl;
+  };
+  scopeWrap.appendChild(mkRadio('all', '전체 미처리 이슈', allUnres.length + '건', true));
+  if (filtered.length !== allUnres.length)
+    scopeWrap.appendChild(mkRadio('filtered', '현재 필터된 이슈만', filtered.length + '건', false));
+  if (checkedItems.length)
+    scopeWrap.appendChild(mkRadio('checked', '선택된 이슈만', checkedItems.length + '건 체크됨', false));
+  modalBox.appendChild(scopeWrap);
+
+  // 수신자 체크박스
+  const rcptLabel = document.createElement('div');
+  rcptLabel.style.cssText = 'font-size:10px;font-weight:700;color:#888;letter-spacing:1px;margin-bottom:8px;';
+  rcptLabel.textContent = '받는사람 (중복 선택 가능)';
+  modalBox.appendChild(rcptLabel);
+
+  const rcptWrap = document.createElement('div');
+  rcptWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:20px;';
+  EMAIL_RECIPIENTS.forEach((r, i) => {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 14px;border:1.5px solid #eee;border-radius:3px;cursor:pointer;font-size:12px;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.className = 'em-rcpt';
+    cb.dataset.email = r.email; cb.dataset.name = r.name;
+    if (i === 0) cb.checked = true;
+    cb.addEventListener('change', () => {
+      lbl.style.borderColor = cb.checked ? 'var(--orange)' : '#eee';
+    });
+    if (i === 0) lbl.style.borderColor = 'var(--orange)';
+    const nameEl = document.createElement('strong');
+    nameEl.textContent = r.name;
+    const emailEl = document.createElement('span');
+    emailEl.style.cssText = 'color:var(--gray-500);font-size:11px;';
+    emailEl.textContent = r.email;
+    lbl.appendChild(cb); lbl.appendChild(nameEl); lbl.appendChild(emailEl);
+    rcptWrap.appendChild(lbl);
+  });
+  modalBox.appendChild(rcptWrap);
+
+  // 버튼 행
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '취소';
+  cancelBtn.style.cssText = 'padding:9px 18px;background:#fff;border:1.5px solid #ccc;font-size:12px;font-weight:700;cursor:pointer;';
+  cancelBtn.onclick = () => overlay.remove();
+  const sendBtn = document.createElement('button');
+  sendBtn.textContent = '📧 전송';
+  sendBtn.style.cssText = 'padding:9px 18px;background:#0078D4;color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;';
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(sendBtn);
+  modalBox.appendChild(btnRow);
+
+  overlay.appendChild(modalBox);
+  document.body.appendChild(overlay);
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  // ── 전송 처리 ─────────────────────────────────────────────
+  sendBtn.onclick = async () => {
+    const rcptList = [...modalBox.querySelectorAll('.em-rcpt:checked')];
+    if (!rcptList.length) { alert('받는사람을 1명 이상 선택해주세요.'); return; }
+
+    const scope   = modalBox.querySelector('input[name="em-scope"]:checked')?.value || 'all';
+    const targets = scope === 'checked' ? checkedItems : scope === 'filtered' ? filtered : allUnres;
+    if (!targets.length) { alert('전송할 이슈가 없습니다.'); return; }
+
+    sendBtn.textContent = '전송 중...'; sendBtn.disabled = true;
+
+    try {
+      const today  = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
+      const total  = targets.length;
+      const oldCnt = targets.filter(r => getIssueAgeDays(r.created_at) >= 3).length;
+      const ts     = {};
+      targets.forEach(r => getIssueTypes(r).forEach(t => { ts[t.label] = (ts[t.label]||0)+1; }));
+      const typeText = Object.entries(ts).sort((a,b)=>b[1]-a[1])
+                             .map(([l,c]) => '  - ' + l + ': ' + c + '건')
+                             .join(String.fromCharCode(10));
+      const top = [...targets].sort((a,b) => new Date(a.created_at)-new Date(b.created_at)).slice(0, 15);
+      const issText = top.map(r => {
+        const d  = getIssueAgeDays(r.created_at);
+        const ag = d>=3 ? ('[🔴 '+d+'일 경과]') : d>=1 ? ('['+d+'일 경과]') : '[오늘]';
+        const ty = getIssueTypes(r).map(t=>t.label).join(', ') || '기타';
+        return '  '+ag+' '+(r.input_style_num||'-')+' | '+((r.product_name||'-').slice(0,20))+' | '+(r.user_name||'-')+' | '+ty;
+      }).join(String.fromCharCode(10)) + (total>15 ? String.fromCharCode(10)+'  ... 외 '+(total-15)+'건' : '');
+
+      // 선택된 수신자 이메일을 쉼표로 합쳐서 1번만 전송 (1건 소모)
+      const toEmails = rcptList.map(r => r.dataset.email).join(', ');
+      const toNames  = rcptList.map(r => r.dataset.name).join(', ');
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email:     toEmails,
+        subject:      '[DTC3 이슈 알림] 미처리 이슈 ' + total + '건 확인 요청 (' + today + ')',
+        total:        String(total),
+        old_count:    String(oldCnt),
+        check_date:   today,
+        type_summary: typeText,
+        issue_list:   issText,
+        dashboard_url:'https://digitalworksdc-a11y.github.io/nike-inspector-dashboard/',
+      });
+
+      overlay.remove();
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:28px;right:28px;background:var(--green);color:#fff;padding:12px 20px;font-size:13px;font-weight:700;z-index:9999;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+      toast.textContent = '✅ 전송 완료 (1건 소모) → ' + toNames;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+
+    } catch(err) {
+      console.error('EmailJS 오류:', err);
+      sendBtn.textContent = '📧 전송'; sendBtn.disabled = false;
+      alert('전송 실패\n' + (err?.text || err?.message || JSON.stringify(err)));
+    }
+  };
+}
+
 async function renderIssueMgmt() {
   const wrap = document.getElementById('issue-mgmt-wrap');
   wrap.innerHTML = '<div class="loading" style="padding:32px;">로딩 중...</div>';
@@ -838,6 +999,7 @@ async function renderIssueMgmt() {
           <option value="SNKRS">SNKRS</option>
         </select>
         <button onclick="bulkResolveAll()" style="margin-left:auto;padding:4px 14px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;border-radius:2px;">✅ 전체 일괄처리</button>
+        <button onclick="sendIssueEmail()" style="padding:4px 14px;background:#0078D4;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;border-radius:2px;">📧 이메일 알림</button>
       </div>
       <div id="im-unresolved-wrap"><div class="empty">미처리 이슈가 없습니다 ✅</div></div>
       <div class="pagination" id="im-unresolved-pagination"></div>
@@ -1130,7 +1292,7 @@ function scrollToSec(id, el) {
 
 // 스크롤 시 현재 섹션 하이라이트
 function updateNavOnScroll() {
-  const secIds = ['sec-summary','sec-user','sec-stats','sec-issue','sec-price','sec-badge','sec-live','sec-stealth'];
+  const secIds = ['sec-summary','sec-user','sec-stats','sec-issue','sec-badge','sec-live','sec-stealth'];
   const offset = 120;
   let current = secIds[0];
   for (const id of secIds) {
@@ -1418,7 +1580,6 @@ function renderAll() {
   renderSummary();
   renderUnresolved();
   renderIssueSection();
-  renderPriceChanges();
   renderBadgeSection();
   renderLiveTable();
   renderStealthTable();
@@ -1438,8 +1599,8 @@ function renderSummary() {
   const resolvedCnt   = filterByUser(allResolvedIssues).filter(isIssueRow).length;
   const issues        = unresolvedCnt + resolvedCnt;
 
-  // 마지막 검수: LIVE/STEALTH/뱃징 중 가장 최신
-  const allLatest = [...rows, ...badge].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
+  // 마지막 검수: 날짜 필터 무관 — allInspections(전체) + allBadge(전체) 중 최신
+  const allLatest = [...allInspections, ...allBadge].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
   const lastRow   = allLatest[0];
   const lastTime  = lastRow?.created_at ? fmtDate(lastRow.created_at) : '-';
   const lastUser  = lastRow?.user_name || '';
@@ -1495,6 +1656,7 @@ function isIssueRow(r) {
 let livePage    = 1;
 let stealthPage = 1;
 let pricePage   = 1;
+const PRICE_PAGE_SIZE = 20;
 let _priceChangesCache = [];
 
 // ── 라이브검수 ─────────────────────────────────────────────
@@ -1894,9 +2056,9 @@ function renderPriceChanges() {
 function renderPriceTable() {
   const changes    = _priceChangesCache;
   const total      = changes.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / PRICE_PAGE_SIZE));
   if (pricePage > totalPages) pricePage = 1;
-  const pageItems  = changes.slice((pricePage-1)*PAGE_SIZE, pricePage*PAGE_SIZE);
+  const pageItems  = changes.slice((pricePage-1)*PRICE_PAGE_SIZE, pricePage*PRICE_PAGE_SIZE);
 
   if (!total) {
     document.getElementById('price-change-wrap').innerHTML = '<div class="empty">가격 변동 제품이 없습니다</div>';
