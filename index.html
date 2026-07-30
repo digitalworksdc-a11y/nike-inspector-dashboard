@@ -439,12 +439,22 @@
     <!-- 이슈 제품 -->
     <div id="sec-issue" style="scroll-margin-top:110px;"></div>
     <div class="section-title">⚠️ 이슈 제품</div>
-    <div class="cards cards-3" id="issue-cards"></div>
+    <div class="cards" id="issue-cards" style="grid-template-columns:1.4fr 1fr 1fr 1fr;"></div>
     <div id="issue-type-bar" style="display:none;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;padding:10px 16px;background:var(--white);border:1px solid var(--gray-100);"></div>
     <div class="table-wrap" style="margin-top:10px;">
       <div class="table-header">
-        <span class="table-title">이슈 제품 목록</span>
+        <span class="table-title">미처리 이슈 목록</span>
         <span class="table-count" id="issue-count"></span>
+      </div>
+      <div class="filter-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+          <input type="checkbox" id="issue-check-all" onchange="toggleAllIssues(this)"> 전체선택
+        </label>
+        <button onclick="bulkResolveIssueSection()" style="padding:4px 12px;background:var(--green);color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;border-radius:2px;white-space:nowrap;">✅ 선택 일괄처리</button>
+        <span id="issue-selected-count" style="font-size:11px;color:var(--gray-500);"></span>
+        <button class="btn-reset-filter" id="issue-group-btn" onclick="toggleIssueGroup()" style="margin-left:auto;">🔗 제품별 묶어보기</button>
+        <input class="search-input" id="issue-search" placeholder="스타일번호 / 제품명" oninput="renderIssueSection()">
+        <button class="btn-reset-filter" onclick="resetIssueFilters()">✕ 초기화</button>
       </div>
       <div id="issue-table-wrap"><div class="loading">로딩 중...</div></div>
     </div>
@@ -584,9 +594,12 @@ const SUPABASE_KEY = 'sb_publishable_XzqxPVRM40KBo9DgNv15Nw_dl3dY1qb';
 const PASSWORD     = 'IBANK99';
 const PAGE_SIZE    = 50;
 
-let allInspections = [], allBadge = [], allUnresolved = [], allInspectionsPrice = [];
+let allInspections = [], allBadge = [], allUnresolved = [], allResolvedIssues = [], allInspectionsPrice = [];
 let selectedUser = 'all', selectedDays = 1;
 let badgePage = 1;
+let _issueAgeFilter = '';   // '' | 'today' | 'recent' | 'old'
+let _issueTypeFilter = '';  // 유형별 클릭 필터
+let _issueGroupMode  = false; // true = 스타일번호(제품)별 묶어보기
 let customDateFrom = '', customDateTo = '';
 let inspectPage = 1;
 let autoRefreshTimer = null;
@@ -604,6 +617,130 @@ function switchTab(name, el) {
 // ── 이슈 관리 탭 ─────────────────────────────────────────────
 let allResolvedCache = [];
 
+// ── 이슈 관리 지표 계산 ──────────────────────────────────────
+function calcIssueMetrics(unresolved, resolved) {
+  // 평균 처리시간 (시간 단위)
+  const durations = resolved
+    .filter(r => r.created_at && r.resolved_at)
+    .map(r => (new Date(r.resolved_at) - new Date(r.created_at)) / 3600000)
+    .filter(h => h >= 0 && h < 24 * 365);
+  const avgHours = durations.length
+    ? durations.reduce((a,b) => a+b, 0) / durations.length
+    : null;
+
+  // 최장 미처리 경과일
+  const maxAge = unresolved.length
+    ? Math.max(...unresolved.map(r => getIssueAgeDays(r.created_at)))
+    : 0;
+
+  // 최근 7일 처리 건수 (KST)
+  const from7 = new Date(Date.now() - 6*86400000).toLocaleDateString('en-CA', { timeZone:'Asia/Seoul' });
+  const week  = resolved.filter(r => r.resolved_at && toKSTDate(r.resolved_at) >= from7).length;
+
+  const total = unresolved.length + resolved.length;
+  return {
+    total,
+    rate: total ? Math.round(resolved.length / total * 100) : 0,
+    avgHours, maxAge, week
+  };
+}
+
+function fmtDuration(h) {
+  if (h === null || h === undefined) return '-';
+  if (h < 1)  return Math.round(h * 60) + '분';
+  if (h < 48) return h.toFixed(1) + '시간';
+  return (h / 24).toFixed(1) + '일';
+}
+
+// 발생 vs 처리 일별 추이 (최근 14일)
+function buildIssueTrend(unresolved, resolved) {
+  const created  = {};
+  const resolvedBy = {};
+  [...unresolved, ...resolved].forEach(r => {
+    const d = toKSTDate(r.created_at);
+    if (d) created[d] = (created[d]||0) + 1;
+  });
+  resolved.forEach(r => {
+    const d = toKSTDate(r.resolved_at);
+    if (d) resolvedBy[d] = (resolvedBy[d]||0) + 1;
+  });
+
+  const days = [...new Set([...Object.keys(created), ...Object.keys(resolvedBy)])].sort().slice(-14);
+  if (!days.length) return '<div class="empty">데이터 없음</div>';
+  const max = Math.max(1, ...days.map(d => Math.max(created[d]||0, resolvedBy[d]||0)));
+
+  return `
+    <div style="display:flex;gap:12px;padding:0 18px 6px;font-size:10px;color:var(--gray-500);">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--orange);border-radius:2px;"></span>발생</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:var(--green);border-radius:2px;"></span>처리</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px;height:110px;padding:0 18px 12px;">
+      ${days.map(d => {
+        const c = created[d]||0, v = resolvedBy[d]||0;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;justify-content:flex-end;">
+          <div style="display:flex;align-items:flex-end;gap:2px;width:100%;height:100%;justify-content:center;">
+            <div style="display:flex;flex-direction:column;align-items:center;width:45%;">
+              <span style="font-size:9px;font-weight:700;color:${c ? 'var(--orange)' : 'var(--gray-300)'};">${c}</span>
+              <div title="${d} 발생 ${c}건" style="width:100%;background:var(--orange);border-radius:2px 2px 0 0;min-height:2px;height:${Math.round(c/max*80)}px;cursor:default;${c===0?'opacity:.3;':''}"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;width:45%;">
+              <span style="font-size:9px;font-weight:700;color:${v ? 'var(--green)' : 'var(--gray-300)'};">${v}</span>
+              <div title="${d} 처리 ${v}건" style="width:100%;background:var(--green);border-radius:2px 2px 0 0;min-height:2px;height:${Math.round(v/max*80)}px;cursor:default;${v===0?'opacity:.3;':''}"></div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--gray-500);white-space:nowrap;">${d.slice(5)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// 담당자별 처리 실적
+function buildResolverStats(resolved) {
+  const by = {};
+  resolved.forEach(r => { const n = r.resolved_by || '(미기재)'; by[n] = (by[n]||0) + 1; });
+  const entries = Object.entries(by).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  if (!entries.length) return '<div class="empty">처리 내역이 없습니다</div>';
+  const max = entries[0][1];
+  return `<div style="padding:14px 18px;">${entries.map(([name, cnt]) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+      <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+        <div style="width:${Math.round(cnt/max*100)}%;height:100%;background:var(--green);border-radius:3px;"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;min-width:28px;text-align:right;">${cnt}</div>
+    </div>`).join('')}</div>`;
+}
+
+// 유형별 처리율
+function buildTypeProgress(unresolved, resolved) {
+  const stat = {};
+  const bump = (r, key) => {
+    getIssueTypes(r).forEach(t => {
+      if (!stat[t.label]) stat[t.label] = { cls: t.cls, un: 0, re: 0 };
+      stat[t.label][key]++;
+    });
+  };
+  unresolved.forEach(r => bump(r, 'un'));
+  resolved.forEach(r => bump(r, 're'));
+
+  const entries = Object.entries(stat).sort((a,b) => (b[1].un+b[1].re) - (a[1].un+a[1].re));
+  if (!entries.length) return '<div class="empty">데이터 없음</div>';
+
+  return `<div style="padding:14px 18px;">${entries.map(([label, v]) => {
+    const tot  = v.un + v.re;
+    const pct  = tot ? Math.round(v.re / tot * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+      <span class="badge ${v.cls}" style="font-size:10px;min-width:74px;text-align:center;">${label}</span>
+      <div style="flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${pct>=50?'var(--green)':pct>0?'var(--amber)':'var(--red)'};border-radius:3px;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--gray-500);min-width:96px;text-align:right;">
+        ${v.re}/${tot}건 · <strong style="color:var(--black);">${pct}%</strong>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
 async function renderIssueMgmt() {
   const wrap = document.getElementById('issue-mgmt-wrap');
   wrap.innerHTML = '<div class="loading" style="padding:32px;">로딩 중...</div>';
@@ -618,11 +755,12 @@ async function renderIssueMgmt() {
 
   const unresolved = allUnresolved; // 미처리 이슈 (이미 로드됨)
   const resolved   = allResolvedCache;
+  const M = calcIssueMetrics(unresolved, resolved); // 관리 지표
 
   wrap.innerHTML = `
     <!-- 요약 카드 -->
     <div class="section-title" style="margin-top:0;">⚠️ 이슈 관리</div>
-    <div class="cards cards-3" style="margin-bottom:20px;">
+    <div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px;">
       <div class="card red">
         <div class="card-label">미처리 이슈</div>
         <div class="card-value">${unresolved.length}</div>
@@ -635,12 +773,51 @@ async function renderIssueMgmt() {
       </div>
       <div class="card blue">
         <div class="card-label">처리율</div>
-        <div class="card-value" style="font-size:22px;">${
-          unresolved.length + resolved.length > 0
-          ? Math.round(resolved.length / (unresolved.length + resolved.length) * 100) + '%'
-          : '-'
-        }</div>
-        <div class="sum-sub">전체 이슈 중</div>
+        <div class="card-value">${M.total ? M.rate + '%' : '-'}</div>
+        <div class="sum-sub">전체 ${M.total}건 중</div>
+      </div>
+    </div>
+
+    <!-- 관리 지표 -->
+    <div class="cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      <div class="card">
+        <div class="card-label">평균 처리시간</div>
+        <div class="card-value" style="font-size:20px;">${fmtDuration(M.avgHours)}</div>
+        <div class="sum-sub">검수 → 처리완료</div>
+      </div>
+      <div class="card ${M.maxAge >= 3 ? 'red' : 'amber'}">
+        <div class="card-label">최장 미처리</div>
+        <div class="card-value" style="font-size:20px;">${unresolved.length ? M.maxAge + '일' : '-'}</div>
+        <div class="sum-sub">${M.maxAge >= 3 ? '우선 처리 필요' : '양호'}</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">최근 7일 처리</div>
+        <div class="card-value" style="font-size:20px;">${M.week}건</div>
+        <div class="sum-sub">주간 처리 실적</div>
+      </div>
+    </div>
+
+    <!-- 발생 vs 처리 추이 -->
+    <div class="table-wrap" style="margin-bottom:14px;">
+      <div class="table-header">
+        <span class="table-title">📈 발생 vs 처리 추이</span>
+        <span class="table-count">최근 14일</span>
+      </div>
+      ${buildIssueTrend(unresolved, resolved)}
+    </div>
+
+    <!-- 담당자별 · 유형별 -->
+    <div class="cards cards-2" style="margin-bottom:20px;">
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">👤 담당자별 처리 실적</span></div>
+        ${buildResolverStats(resolved)}
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">🏷 유형별 처리율</span>
+          <span class="table-count">처리완료 / 전체</span>
+        </div>
+        ${buildTypeProgress(unresolved, resolved)}
       </div>
     </div>
 
@@ -924,10 +1101,20 @@ async function bulkResolveAll() {
         }
       } catch(e) {}
     }
+    // allResolvedIssues에 추가
+    for (const r of rows) {
+      if (!allResolvedIssues.find(x => x.id === r.id)) {
+        allResolvedIssues.unshift({...r, resolved: true,
+          resolved_by: name, resolved_comment: comment, resolved_at: kst.toISOString()});
+      }
+    }
     allUnresolved = allUnresolved.filter(r => !rows.find(x=>x.id===r.id));
     _imUnresolvedCache = [...allUnresolved];
     document.body.removeChild(overlay);
     renderIssueMgmt();
+    renderIssueSection();
+    renderUnresolved();
+    renderSummary();
   };
 }
 
@@ -977,6 +1164,8 @@ document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key
 if (sessionStorage.getItem('auth') === '1') {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
+  loadAll();
+  startAutoRefresh();
 }
 
 // ── 시간 ─────────────────────────────────────────────────────
@@ -1016,6 +1205,11 @@ function startAutoRefresh() {
         } catch(e) {
           allUnresolved = allInspections.filter(isIssueRow);
         }
+        // 처리완료 이슈 갱신
+        try {
+          allResolvedIssues = await supabaseFetch('inspections',
+            'order=resolved_at.desc&resolved=eq.true');
+        } catch(e) { /* 이전 값 유지 */ }
 
         renderAll();
       }
@@ -1120,7 +1314,15 @@ async function loadAll() {
       allUnresolved = allInspections.filter(isIssueRow);
     }
 
-    // 3. 가격 변동용 — 최근 60일 전체 조회 (날짜 필터 무관)
+    // 3. 처리완료 이슈 전체 조회 (전체기간, 모든 곳에서 동일 기준 사용)
+    try {
+      allResolvedIssues = await supabaseFetch('inspections',
+        'order=resolved_at.desc&resolved=eq.true');
+    } catch(e3) {
+      allResolvedIssues = [];
+    }
+
+    // 4. 가격 변동용 — 최근 60일 전체 조회 (날짜 필터 무관)
     try {
       const priceFrom = getKSTMidnightUTC(59); // 60일 전 자정
       allInspectionsPrice = await supabaseFetch('inspections',
@@ -1231,10 +1433,10 @@ function renderSummary() {
   const total = rows.length + badge.length;   // 전체 합산
   const done  = rows.filter(r => r.status === 'done' || r.status === 'snkrs').length;
 
-  // 이슈: 이슈섹션과 동일하게 allUnresolved 기준 (전체기간, 사용자필터만 적용)
-  const issueRows    = filterByUser(allUnresolved);
-  const issues       = issueRows.length;
-  const resolvedRows = issueRows.filter(r => r.resolved === true);
+  // 이슈: 미처리 + 처리완료 합산
+  const unresolvedCnt = filterByUser(allUnresolved).length;
+  const resolvedCnt   = filterByUser(allResolvedIssues).filter(isIssueRow).length;
+  const issues        = unresolvedCnt + resolvedCnt;
 
   // 마지막 검수: LIVE/STEALTH/뱃징 중 가장 최신
   const allLatest = [...rows, ...badge].sort((a,b) => new Date(b.created_at)-new Date(a.created_at));
@@ -1254,15 +1456,15 @@ function renderSummary() {
       <div class="sum-sub">완료율 ${rows.length ? Math.round(done/rows.length*100) : 0}%</div>
     </div>
     <div class="sum-card red">
-      <div class="sum-label">이슈</div>
-      <div class="sum-value">${issues}</div>
-      <div class="sum-sub">미처리 전체 기간 기준</div>
+      <div class="sum-label">미처리 이슈</div>
+      <div class="sum-value">${unresolvedCnt}</div>
+      <div class="sum-sub">전체 ${issues}건 중 처리 필요</div>
     </div>
 
     <div class="sum-card green">
       <div class="sum-label">이슈 처리</div>
-      <div class="sum-value">${filterByUser(allUnresolved.filter(r=>r.resolved)).length}</div>
-      <div class="sum-sub">전체 이슈 ${issues}건 중</div>
+      <div class="sum-value">${resolvedCnt}</div>
+      <div class="sum-sub">전체 ${issues}건 중 완료</div>
     </div>
     <div class="sum-card amber">
       <div class="sum-label">마지막 검수</div>
@@ -1301,7 +1503,7 @@ function getLiveRows() {
   const status = document.getElementById('f-live-status')?.value||'';
   const kc     = document.getElementById('f-live-kc')?.value||'';
   const coupon = document.getElementById('f-live-coupon')?.value||'';
-  return filterByUser(allInspections)
+  return applyFilters(allInspections)
     // LIVE: 'LIVE', 'visible', null/undefined/'' (구버전 또는 미설정)
     .filter(r => { const m = r.inspect_mode||''; return m === 'LIVE' || m === 'visible' || m === ''; })
     .filter(r => !status || (r.status||'').includes(status))
@@ -1352,7 +1554,7 @@ function resetLiveFilters() {
 function getStealthRows() {
   const kw     = (document.getElementById('stealth-search')?.value||'').toUpperCase();
   const status = document.getElementById('f-stealth-status')?.value||'';
-  return filterByUser(allInspections)
+  return applyFilters(allInspections)
     // STEALTH: 'STEALTH', 'background' (구버전)
     .filter(r => { const m = r.inspect_mode||''; return m === 'STEALTH' || m === 'background'; })
     .filter(r => !status || (r.status||'').includes(status))
@@ -1456,24 +1658,9 @@ function exportExcel(headers, data, filename) {
 let _issueSortedCache = [];
 function expandIssueTable() {
   document.getElementById('issue-more-wrap')?.remove();
-  const wrap = document.getElementById('issue-table-wrap');
-  const rows = _issueSortedCache;
-  const ISSUE_INIT = 10;
-  const extra = rows.slice(10).map(r => {
-    const tags = getIssueTypes(r).map(t => `<span class="badge ${t.cls}">${t.label}</span>`).join(' ');
-    return `<tr style="${r.resolved ? 'opacity:.4;background:#f9f9f9;' : ''}" onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
-      <td>${fmtDate(r.created_at)}</td>
-      <td>${r.user_name||''}</td>
-      <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
-      <td>${r.product_name||''}</td>
-      <td style="white-space:nowrap;">${tags || '<span class="badge badge-gray">기타</span>'}</td>
-      <td style="text-align:center;">${r.resolved ? '<span class="badge badge-green">처리완료</span>' : '<span class="badge badge-amber">미처리</span>'}</td>
-      <td style="font-size:11px;">${r.resolved_by||''}</td>
-      <td style="font-size:11px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.resolved_comment||''}</td>
-      <td onclick="event.stopPropagation()">${r.resolved ? '' : `<button onclick="resolveIssue('${r.id}')" style="padding:3px 10px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;white-space:nowrap;">처리완료</button>`}</td>
-    </tr>`;
-  }).join('');
-  // 기존 테이블 tbody에 추가
+  const wrap  = document.getElementById('issue-table-wrap');
+  const rowFn = _issueGroupMode ? issueGroupRowHtml : issueRowHtml;
+  const extra = _issueSortedCache.slice(10).map(rowFn).join('');
   const tbody = wrap.querySelector('tbody');
   if (tbody) tbody.insertAdjacentHTML('beforeend', extra);
 }
@@ -1620,6 +1807,15 @@ async function bulkResolveIssues() {
           successCount++;
         }
       } catch(e) { console.error('처리 오류:', id, e); }
+    }
+    // allResolvedIssues에 추가 (filter 전에 먼저)
+    for (const id of ids) {
+      if (!allResolvedIssues.find(r => r.id === id)) {
+        const src = allInspections.find(r => r.id === id)
+                 || allUnresolved.find(r => r.id === id);
+        if (src) allResolvedIssues.unshift({...src, resolved: true,
+          resolved_by: name, resolved_comment: comment, resolved_at: kst.toISOString()});
+      }
     }
     // allUnresolved에서 처리된 항목 제거
     allUnresolved = allUnresolved.filter(r => !ids.includes(r.id));
@@ -1838,100 +2034,375 @@ function getIssueTypes(r) {
 }
 
 // ── 이슈 ─────────────────────────────────────────────────────
-function renderIssueSection() {
-  // 이슈는 기간 무관 전체 조회 (allUnresolved) + 현재 기간 내 처리완료
-  const unresolvedRows = filterByUser(allUnresolved);
-  const resolvedInPeriod = filterByUser(allInspections).filter(r => r.resolved === true && isIssueRow(r));
-  // 전체 이슈 = 미처리(전체기간) + 처리완료(현재기간)
-  const issueAll = [...unresolvedRows, ...resolvedInPeriod]
-    .filter((r,i,a) => a.findIndex(x => x.id === r.id) === i);
-  const resolved   = issueAll.filter(r => r.resolved === true);
-  const unresolved = issueAll.filter(r => !r.resolved);
+// ── 경과일 계산 (KST 기준) ──────────────────────────────────
+function getIssueAgeDays(iso) {
+  if (!iso) return 0;
+  const todayKST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+  const rowKST   = toKSTDate(iso);
+  if (!rowKST) return 0;
+  const t1 = new Date(todayKST + 'T00:00:00Z').getTime();
+  const t2 = new Date(rowKST   + 'T00:00:00Z').getTime();
+  return Math.max(0, Math.round((t1 - t2) / 86400000));
+}
 
-  // ① 카드 3개
+function ageBucket(days) {
+  if (days <= 0) return 'today';
+  if (days <= 2) return 'recent';
+  return 'old';
+}
+
+// 경과일 칩 (목록 표시용)
+function ageChip(days) {
+  if (days <= 0) return '<span class="badge badge-gray">오늘</span>';
+  if (days <= 2) return `<span class="badge badge-amber">${days}일</span>`;
+  return `<span class="badge badge-red">🔴 ${days}일</span>`;
+}
+
+// 경과일 카드 클릭 → 필터 토글
+function setIssueAge(bucket) {
+  _issueAgeFilter = (_issueAgeFilter === bucket) ? '' : bucket;
+  renderIssueSection();
+  document.getElementById('sec-issue')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// 유형별 칩 클릭 → 필터 토글
+function setIssueType(label) {
+  _issueTypeFilter = (_issueTypeFilter === label) ? '' : label;
+  renderIssueSection();
+}
+
+// 이슈 섹션 필터 전체 초기화
+function resetIssueFilters() {
+  _issueAgeFilter  = '';
+  _issueTypeFilter = '';
+  const s = document.getElementById('issue-search');
+  if (s) s.value = '';
+  renderIssueSection();
+}
+
+// ── 이슈 섹션 체크박스 / 일괄처리 ────────────────────────────
+function toggleAllIssues(el) {
+  document.querySelectorAll('.issue-chk').forEach(c => c.checked = el.checked);
+  updateIssueSelectedCount();
+}
+
+function updateIssueSelectedCount() {
+  const boxes   = [...document.querySelectorAll('.issue-chk')];
+  const checked = boxes.filter(c => c.checked);
+  const idCount = checked.flatMap(c => (c.dataset.ids || c.dataset.id || '').split(',').filter(Boolean)).length;
+  const el = document.getElementById('issue-selected-count');
+  if (el) {
+    el.textContent = !checked.length ? ''
+      : (_issueGroupMode ? `${checked.length}개 제품 · ${idCount}건 선택됨` : `${idCount}건 선택됨`);
+  }
+  const all = document.getElementById('issue-check-all');
+  if (all) all.checked = boxes.length > 0 && checked.length === boxes.length;
+}
+
+// 체크된 항목의 id 수집 (개별 data-id / 그룹 data-ids 모두 지원)
+function collectCheckedIssueIds() {
+  return [...document.querySelectorAll('.issue-chk:checked')]
+    .flatMap(c => (c.dataset.ids || c.dataset.id || '').split(',').filter(Boolean));
+}
+
+async function bulkResolveIssueSection() {
+  const ids = collectCheckedIssueIds();
+  if (!ids.length) { alert('처리할 항목을 선택해주세요.'); return; }
+  await openBulkResolveModal(ids);
+}
+
+// 그룹(제품) 단위 일괄 처리
+async function resolveIssueGroup(idsCsv) {
+  const ids = (idsCsv || '').split(',').filter(Boolean);
+  if (!ids.length) return;
+  await openBulkResolveModal(ids);
+}
+
+async function openBulkResolveModal(ids) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#fff;width:400px;max-width:95vw;padding:28px;">
+      <div style="font-size:14px;font-weight:800;margin-bottom:6px;">✅ 일괄 처리완료 등록</div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:20px;">선택된 ${ids.length}건을 일괄 처리합니다</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;display:block;margin-bottom:4px;">처리 담당자 *</label>
+        <input id="is-name" type="text" placeholder="이름 입력" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;"/>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;display:block;margin-bottom:4px;">처리 내용 / 코멘트 *</label>
+        <textarea id="is-comment" placeholder="처리 내용을 입력하세요" style="width:100%;padding:9px 10px;border:1.5px solid #ccc;font-size:13px;outline:none;box-sizing:border-box;height:80px;resize:vertical;font-family:sans-serif;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="is-cancel" style="padding:9px 16px;background:#fff;border:1.5px solid #ccc;font-size:12px;font-weight:700;cursor:pointer;">취소</button>
+        <button id="is-confirm" style="padding:9px 16px;background:var(--green);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;">일괄 처리완료</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('is-name').focus();
+  document.getElementById('is-cancel').onclick = () => document.body.removeChild(overlay);
+  overlay.onclick = e => { if (e.target === overlay) document.body.removeChild(overlay); };
+
+  document.getElementById('is-confirm').onclick = async () => {
+    const name    = document.getElementById('is-name').value.trim();
+    const comment = document.getElementById('is-comment').value.trim();
+    if (!name)    { document.getElementById('is-name').style.borderColor = '#E4002B'; return; }
+    if (!comment) { document.getElementById('is-comment').style.borderColor = '#E4002B'; return; }
+
+    const btn = document.getElementById('is-confirm');
+    btn.textContent = '처리 중...'; btn.disabled = true;
+
+    const kstIso = new Date(Date.now() + 9*60*60*1000).toISOString();
+    const patch  = { resolved:true, resolved_by:name, resolved_comment:comment, resolved_at:kstIso };
+    let ok = 0;
+
+    for (const id of ids) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/inspections?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ ...patch, resolved_at: kstIso.replace('Z', '+09:00') })
+        });
+        if (!res.ok) continue;
+        ok++;
+        const src = allInspections.find(r => r.id === id) || allUnresolved.find(r => r.id === id);
+        if (src) {
+          Object.assign(src, patch);
+          if (!allResolvedIssues.find(r => r.id === id)) allResolvedIssues.unshift({ ...src });
+        }
+      } catch(e) { console.error('처리 오류:', id, e); }
+    }
+
+    allUnresolved      = allUnresolved.filter(r => !ids.includes(r.id));
+    _imUnresolvedCache = [...allUnresolved];
+    document.body.removeChild(overlay);
+    renderIssueSection(); renderUnresolved(); renderSummary();
+    if (ok < ids.length) alert(`${ids.length}건 중 ${ok}건만 처리됐습니다.`);
+  };
+}
+
+// ── 스타일번호(제품) 단위 그룹핑 ────────────────────────────
+function toggleIssueGroup() {
+  _issueGroupMode = !_issueGroupMode;
+  renderIssueSection();
+}
+
+function groupIssuesByStyle(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    const key = (r.input_style_num || r.page_style_num || r.id || '').toUpperCase();
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  });
+  return [...map.entries()].map(([styleNum, items]) => {
+    const oldest  = [...items].sort((a,b) => new Date(a.created_at) - new Date(b.created_at))[0];
+    const users   = [...new Set(items.map(r => r.user_name).filter(Boolean))];
+    const typeMap = new Map();
+    items.forEach(r => getIssueTypes(r).forEach(t => typeMap.set(t.label, t.cls)));
+    return {
+      styleNum,
+      ids:    items.map(r => r.id),
+      count:  items.length,
+      oldest,
+      maxAge: Math.max(...items.map(r => getIssueAgeDays(r.created_at))),
+      users,
+      productName: items.find(r => r.product_name)?.product_name || '',
+      types: [...typeMap.entries()].map(([label, cls]) => ({ label, cls }))
+    };
+  }).sort((a,b) => b.maxAge - a.maxAge || b.count - a.count);
+}
+
+// 그룹 행 HTML
+function issueGroupRowHtml(g) {
+  const tags = g.types.map(t => `<span class="badge ${t.cls}">${t.label}</span>`).join(' ');
+  const userLabel = g.users.length <= 1
+    ? (g.users[0] || '')
+    : `${g.users[0]} <span style="color:var(--gray-500);">외 ${g.users.length - 1}</span>`;
+  return `<tr onclick="showModal(${JSON.stringify(g.oldest).replace(/"/g,'&quot;')})">
+    <td style="width:32px;text-align:center;" onclick="event.stopPropagation()">
+      <input type="checkbox" class="issue-chk" data-ids="${g.ids.join(',')}" onchange="updateIssueSelectedCount()">
+    </td>
+    <td>${fmtDate(g.oldest.created_at)}</td>
+    <td style="text-align:center;">${ageChip(g.maxAge)}</td>
+    <td>${userLabel}</td>
+    <td style="font-family:monospace;font-weight:700;white-space:nowrap;">${g.styleNum}${
+      g.count > 1 ? ` <span class="badge badge-orange" style="font-family:sans-serif;">${g.count}건</span>` : ''
+    }</td>
+    <td>${g.productName}</td>
+    <td style="white-space:nowrap;">${tags || '<span class="badge badge-gray">기타</span>'}</td>
+    <td onclick="event.stopPropagation()">
+      <button onclick="resolveIssueGroup('${g.ids.join(',')}')" style="padding:3px 10px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;white-space:nowrap;">${
+        g.count > 1 ? `전체 처리 (${g.count})` : '처리완료'
+      }</button>
+    </td>
+  </tr>`;
+}
+
+// 이슈 목록 행 HTML (공통)
+function issueRowHtml(r) {
+  const tags = getIssueTypes(r).map(t => `<span class="badge ${t.cls}">${t.label}</span>`).join(' ');
+  const days = getIssueAgeDays(r.created_at);
+  return `<tr onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+    <td style="width:32px;text-align:center;" onclick="event.stopPropagation()">
+      <input type="checkbox" class="issue-chk" data-id="${r.id}" onchange="updateIssueSelectedCount()">
+    </td>
+    <td>${fmtDate(r.created_at)}</td>
+    <td style="text-align:center;">${ageChip(days)}</td>
+    <td>${r.user_name||''}</td>
+    <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
+    <td>${r.product_name||''}</td>
+    <td style="white-space:nowrap;">${tags || '<span class="badge badge-gray">기타</span>'}</td>
+    <td onclick="event.stopPropagation()">
+      <button onclick="resolveIssue('${r.id}')" style="padding:3px 10px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;white-space:nowrap;">처리완료</button>
+    </td>
+  </tr>`;
+}
+
+function renderIssueSection() {
+  // 이슈섹션 = 미처리 이슈만 (처리완료 이력은 이슈관리 탭에서 확인)
+  const allUnres  = filterByUser(allUnresolved);
+  const resolved  = filterByUser(allResolvedIssues).filter(isIssueRow);
+  const totalIssues = allUnres.length + resolved.length;
+
+  // 경과일 버킷별 집계 (필터 적용 전 기준)
+  const buckets = { today: [], recent: [], old: [] };
+  allUnres.forEach(r => buckets[ageBucket(getIssueAgeDays(r.created_at))].push(r));
+
+  // ① 카드: 미처리 대표 + 경과일 3분할 (클릭 필터)
+  const activeStyle = 'outline:2px solid var(--orange);outline-offset:-2px;';
   document.getElementById('issue-cards').innerHTML = `
-    <div class="card red">
-      <div class="card-label">이슈 감지</div>
-      <div class="card-value">${issueAll.length}</div>
-      <div class="sum-sub">전체 이슈 건수</div>
+    <div class="card red" style="border-left:4px solid var(--red);">
+      <div class="card-label">⚠️ 미처리 이슈</div>
+      <div class="card-value" style="font-size:34px;">${allUnres.length}</div>
+      <div class="sum-sub">전체 ${totalIssues}건 · 처리율 ${totalIssues ? Math.round(resolved.length/totalIssues*100) : 0}%</div>
     </div>
-    <div class="card amber">
-      <div class="card-label">미처리</div>
-      <div class="card-value">${unresolved.length}</div>
-      <div class="sum-sub">처리 필요</div>
+    <div class="card" onclick="setIssueAge('today')" style="cursor:pointer;${_issueAgeFilter==='today'?activeStyle:''}">
+      <div class="card-label">오늘 발생</div>
+      <div class="card-value">${buckets.today.length}</div>
+      <div class="sum-sub">클릭하여 필터</div>
     </div>
-    <div class="card green">
-      <div class="card-label">처리완료</div>
-      <div class="card-value">${resolved.length}</div>
-      <div class="sum-sub">이슈 ${issueAll.length}건 중</div>
+    <div class="card amber" onclick="setIssueAge('recent')" style="cursor:pointer;${_issueAgeFilter==='recent'?activeStyle:''}">
+      <div class="card-label">1~2일 경과</div>
+      <div class="card-value">${buckets.recent.length}</div>
+      <div class="sum-sub">클릭하여 필터</div>
+    </div>
+    <div class="card red" onclick="setIssueAge('old')" style="cursor:pointer;${_issueAgeFilter==='old'?activeStyle:''}">
+      <div class="card-label">🔴 3일 이상 경과</div>
+      <div class="card-value">${buckets.old.length}</div>
+      <div class="sum-sub">우선 처리 필요</div>
     </div>
   `;
 
+  // 경과일 필터 적용
+  const rows = _issueAgeFilter ? buckets[_issueAgeFilter] : allUnres;
+
   // ② 유형별 요약 바
   const typeCounts = {};
-  issueAll.forEach(r => {
+  rows.forEach(r => {
     getIssueTypes(r).forEach(t => {
       if (!typeCounts[t.label]) typeCounts[t.label] = { cls: t.cls, count: 0 };
       typeCounts[t.label].count++;
     });
   });
   const typeBar = document.getElementById('issue-type-bar');
+  const ageLabel = { today:'오늘 발생', recent:'1~2일 경과', old:'3일 이상 경과' }[_issueAgeFilter];
   if (!Object.keys(typeCounts).length) {
     typeBar.style.display = 'none';
   } else {
     typeBar.style.display = 'flex';
+    const chips = Object.entries(typeCounts).map(([label, v]) => {
+      const on = _issueTypeFilter === label;
+      return `<span class="badge ${v.cls}" onclick="setIssueType('${label}')" title="클릭하여 필터"
+        style="font-size:11px;padding:3px 10px;cursor:pointer;${on ? 'outline:2px solid var(--black);outline-offset:1px;' : ''}">${label} <strong>${v.count}</strong></span>`;
+    }).join('');
+    const off = [];
+    if (_issueAgeFilter)  off.push(`<button onclick="setIssueAge('${_issueAgeFilter}')" style="padding:3px 10px;background:var(--gray-100);border:1.5px solid var(--gray-300);font-size:10px;font-weight:700;cursor:pointer;color:var(--gray-700);">✕ ${ageLabel}</button>`);
+    if (_issueTypeFilter) off.push(`<button onclick="setIssueType('${_issueTypeFilter}')" style="padding:3px 10px;background:var(--gray-100);border:1.5px solid var(--gray-300);font-size:10px;font-weight:700;cursor:pointer;color:var(--gray-700);">✕ ${_issueTypeFilter}</button>`);
     typeBar.innerHTML =
       '<span style="font-size:10px;font-weight:700;color:var(--gray-500);letter-spacing:1px;margin-right:6px;align-self:center;">유형별</span>' +
-      Object.entries(typeCounts).map(([label, v]) =>
-        `<span class="badge ${v.cls}" style="font-size:11px;padding:3px 10px;">${label} <strong>${v.count}</strong></span>`
-      ).join('');
+      chips +
+      (off.length ? `<span style="margin-left:auto;display:flex;gap:4px;">${off.join('')}</span>` : '');
   }
 
-  // ③ 이슈 테이블 (미처리 → 처리완료 순)
-  document.getElementById('issue-count').textContent = issueAll.length + '건';
+  // ③ 유형 + 검색 필터 적용
+  let filtered = rows;
+  if (_issueTypeFilter) {
+    filtered = filtered.filter(r => getIssueTypes(r).some(t => t.label === _issueTypeFilter));
+  }
+  const kw = (document.getElementById('issue-search')?.value || '').trim().toUpperCase();
+  if (kw) {
+    filtered = filtered.filter(r =>
+      (r.input_style_num||'').toUpperCase().includes(kw) ||
+      (r.product_name||'').toUpperCase().includes(kw)
+    );
+  }
 
-  if (!issueAll.length) {
-    document.getElementById('issue-table-wrap').innerHTML = '<div class="empty">이슈 제품이 없습니다 ✅</div>';
+  // ④ 이슈 목록 — 오래된 순 정렬 (우선 처리 대상 먼저)
+  const sorted = [...filtered].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  _issueSortedCache = sorted;
+
+  const hasFilter = !!(_issueAgeFilter || _issueTypeFilter || kw);
+  document.getElementById('issue-count').textContent =
+    sorted.length + '건' + (hasFilter ? ` / 전체 ${allUnres.length}건` : '');
+
+  // 그룹 모드 토글 버튼 라벨
+  const gbtn = document.getElementById('issue-group-btn');
+  if (gbtn) {
+    gbtn.textContent = _issueGroupMode ? '📋 개별 보기' : '🔗 제품별 묶어보기';
+    gbtn.style.background   = _issueGroupMode ? 'var(--black)' : '';
+    gbtn.style.color        = _issueGroupMode ? '#fff' : '';
+    gbtn.style.borderColor  = _issueGroupMode ? 'var(--black)' : '';
+  }
+
+  // 체크박스 상태 초기화
+  const chkAll = document.getElementById('issue-check-all');
+  if (chkAll) chkAll.checked = false;
+  const selCnt = document.getElementById('issue-selected-count');
+  if (selCnt) selCnt.textContent = '';
+
+  if (!sorted.length) {
+    document.getElementById('issue-table-wrap').innerHTML =
+      `<div class="empty">${hasFilter ? '해당 조건의 미처리 이슈가 없습니다' : '미처리 이슈가 없습니다 ✅'}</div>`;
     return;
   }
 
-  const sorted = [...unresolved, ...resolved];
-  _issueSortedCache = sorted;
   const ISSUE_INIT = 10;
-  const issueTableHtml = (list) => `<div style="overflow-x:auto;"><table>
+
+  // 그룹 모드 분기
+  const list  = _issueGroupMode ? groupIssuesByStyle(sorted) : sorted;
+  const rowFn = _issueGroupMode ? issueGroupRowHtml : issueRowHtml;
+  _issueSortedCache = list;
+
+  const th = _issueGroupMode
+    ? '<th>최초 검수</th><th>최장 경과</th><th>사용자</th><th>스타일번호</th>'
+    : '<th>검수일시</th><th>경과</th><th>사용자</th><th>스타일번호</th>';
+
+  const tableHtml = (arr) => `<div style="overflow-x:auto;"><table>
     <thead><tr>
-      <th>검수일시</th><th>사용자</th><th>스타일번호</th><th>제품명</th>
-      <th>이슈유형</th><th>처리여부</th><th>처리자</th><th>처리내용</th><th></th>
+      <th style="width:32px;"></th>
+      ${th}
+      <th>제품명</th><th>이슈유형</th><th></th>
     </tr></thead>
-    <tbody>${list.map(r => {
-      const tags = getIssueTypes(r).map(t =>
-        `<span class="badge ${t.cls}">${t.label}</span>`
-      ).join(' ');
-      return `<tr style="${r.resolved ? 'opacity:.4;background:#f9f9f9;' : ''}" onclick="showModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
-        <td>${fmtDate(r.created_at)}</td>
-        <td>${r.user_name||''}</td>
-        <td style="font-family:monospace;font-weight:700;">${r.input_style_num||''}</td>
-        <td>${r.product_name||''}</td>
-        <td style="white-space:nowrap;">${tags || '<span class="badge badge-gray">기타</span>'}</td>
-        <td style="text-align:center;">${r.resolved
-          ? '<span class="badge badge-green">처리완료</span>'
-          : '<span class="badge badge-amber">미처리</span>'}</td>
-        <td style="font-size:11px;">${r.resolved_by||''}</td>
-        <td style="font-size:11px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.resolved_comment||''}</td>
-        <td onclick="event.stopPropagation()">${r.resolved ? '' :
-          `<button onclick="resolveIssue('${r.id}')" style="padding:3px 10px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;border-radius:2px;white-space:nowrap;">처리완료</button>`
-        }</td>
-      </tr>`;
-    }).join('')}
-    </tbody>
+    <tbody>${arr.map(rowFn).join('')}</tbody>
   </table></div>`;
 
+  // 건수 표시 (그룹 모드는 제품 수 기준)
+  document.getElementById('issue-count').textContent = _issueGroupMode
+    ? `${list.length}개 제품 · ${sorted.length}건`
+    : sorted.length + '건' + (hasFilter ? ` / 전체 ${allUnres.length}건` : '');
+
+  const unit = _issueGroupMode ? '개 제품' : '건';
   document.getElementById('issue-table-wrap').innerHTML =
-    issueTableHtml(sorted.slice(0, ISSUE_INIT)) +
-    (sorted.length > ISSUE_INIT ? `<div id="issue-more-wrap" style="text-align:center;padding:10px;">
+    tableHtml(list.slice(0, ISSUE_INIT)) +
+    (list.length > ISSUE_INIT ? `<div id="issue-more-wrap" style="text-align:center;padding:10px;">
       <button onclick="expandIssueTable()"
         style="padding:6px 20px;background:var(--gray-100);border:1.5px solid var(--gray-300);font-size:11px;font-weight:700;cursor:pointer;color:var(--gray-700);">
-        ▼ 더보기 (${sorted.length - ISSUE_INIT}건 더)
+        ▼ 더보기 (${list.length - ISSUE_INIT}${unit} 더)
       </button></div>` : '');
 }
 
@@ -2289,12 +2760,17 @@ async function resolveIssue(id) {
         })
       });
       if (res.ok) {
-        const row = allInspections.find(r => r.id === id);
-        if (row) {
-          row.resolved         = true;
-          row.resolved_by      = name;
-          row.resolved_comment = comment;
-          row.resolved_at      = kst.toISOString();
+        const resolvedData = {resolved: true, resolved_by: name,
+          resolved_comment: comment, resolved_at: kst.toISOString()};
+        // allInspections 갱신
+        const rowInsp = allInspections.find(r => r.id === id);
+        if (rowInsp) Object.assign(rowInsp, resolvedData);
+        // allUnresolved에서 제거
+        const removedRow = allUnresolved.find(r => r.id === id);
+        allUnresolved = allUnresolved.filter(r => r.id !== id);
+        // allResolvedIssues에 추가
+        if (!allResolvedIssues.find(r => r.id === id)) {
+          allResolvedIssues.unshift({...(rowInsp || removedRow || {id}), ...resolvedData});
         }
         document.body.removeChild(overlay);
         renderIssueSection();
